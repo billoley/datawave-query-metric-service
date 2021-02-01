@@ -1,17 +1,27 @@
-package datawave.query.metrics;
+package datawave.microservice.querymetrics;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.time.DateUtils;
 
 import com.google.common.collect.Lists;
 
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlRootElement;
+
+@XmlRootElement
+@XmlAccessorType(XmlAccessType.NONE)
 public class QueryMetric extends BaseQueryMetric implements Serializable, Comparable<QueryMetric> {
     
     @Override

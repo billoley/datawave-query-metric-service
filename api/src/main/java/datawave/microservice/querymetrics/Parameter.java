@@ -1,17 +1,25 @@
-package datawave.query.metrics;
+package datawave.microservice.querymetrics;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
 import java.io.Serializable;
 
+@XmlAccessorType(XmlAccessType.FIELD)
 public class Parameter implements Serializable {
     
     private static final long serialVersionUID = 2L;
     
+    @XmlElement(name = "name")
     private String parameterName;
+    @XmlElement(name = "value")
     private String parameterValue;
     
     public Parameter() {}
     
-    public Parameter(String name, String value) {
+    public Parameter(@JsonProperty String name, @JsonProperty String value) {
         this.parameterName = name;
         this.parameterValue = value;
     }

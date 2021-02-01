@@ -1,35 +1,66 @@
-package datawave.query.metrics;
+package datawave.microservice.querymetrics;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import datawave.marking.MarkingFunctions;
 import datawave.webservice.query.exception.QueryException;
+import datawave.webservice.query.result.event.HasMarkings;
 import org.apache.commons.lang.builder.CompareToBuilder;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
-public abstract class BaseQueryMetric implements Serializable {
+@XmlAccessorType(XmlAccessType.NONE)
+public abstract class BaseQueryMetric implements Serializable, HasMarkings {
     
+    @XmlAccessorType(XmlAccessType.NONE)
     public static class PageMetric implements Serializable {
         
         private static final long serialVersionUID = 1L;
+        @XmlElement
         private long pagesize = 0;
+        @XmlElement
         private long returnTime = 0;
+        @XmlElement
         private long callTime = -1;
+        @XmlElement
         private long serializationTime = -1;
+        @XmlElement
         private long bytesWritten = -1;
+        @XmlElement
         private long pageRequested = 0;
+        @XmlElement
         private long pageReturned = 0;
+        @XmlElement
         private long pageNumber = -1;
+        @XmlElement
         private long loginTime = -1;
         
         public PageMetric() {
             super();
+        }
+        
+        public PageMetric(@JsonProperty long pagesize, @JsonProperty long returnTime, @JsonProperty long callTime, @JsonProperty long serializationTime,
+                        @JsonProperty long bytesWritten, @JsonProperty long pageRequested, @JsonProperty long pageReturned, @JsonProperty long loginTime) {
+            this.pagesize = pagesize;
+            this.callTime = callTime;
+            this.serializationTime = serializationTime;
+            this.bytesWritten = bytesWritten;
+            this.returnTime = returnTime;
+            this.pageRequested = pageRequested;
+            this.pageReturned = pageReturned;
+            this.loginTime = loginTime;
         }
         
         public PageMetric(long pagesize, long returnTime, long pageRequested, long pageReturned) {
@@ -48,18 +79,6 @@ public abstract class BaseQueryMetric implements Serializable {
             this.returnTime = returnTime;
             this.pageRequested = pageRequested;
             this.pageReturned = pageReturned;
-        }
-        
-        public PageMetric(long pagesize, long returnTime, long callTime, long serializationTime, long bytesWritten, long pageRequested, long pageReturned,
-                        long loginTime) {
-            this.pagesize = pagesize;
-            this.callTime = callTime;
-            this.serializationTime = serializationTime;
-            this.bytesWritten = bytesWritten;
-            this.returnTime = returnTime;
-            this.pageRequested = pageRequested;
-            this.pageReturned = pageReturned;
-            this.loginTime = loginTime;
         }
         
         public PageMetric(PageMetric o) {
@@ -185,14 +204,17 @@ public abstract class BaseQueryMetric implements Serializable {
         }
     }
     
+    @XmlAccessorType(XmlAccessType.NONE)
     public static class Prediction implements Serializable, Comparable<Prediction> {
         
         private static final long serialVersionUID = 1L;
         
         // The name of the prediction
+        @XmlElement
         private String name = null;
         
         // The predicted value
+        @XmlElement
         private double prediction = 0;
         
         public Prediction() {
@@ -264,40 +286,79 @@ public abstract class BaseQueryMetric implements Serializable {
         
     }
     
+    @XmlElement
     protected String queryType = null;
+    @XmlElement
     protected String user = null;
+    @XmlElement
     protected String userDN = null;
+    @XmlElement
     protected Date createDate = null;
+    @XmlElement
     protected String queryId = null;
+    @XmlElement
     protected long setupTime = 0;
+    @XmlElement
     protected String query = null;
+    @XmlElement
     protected String host = null;
+    @XmlElement
     protected long createCallTime = -1;
-    protected ArrayList<PageMetric> pageTimes = new ArrayList<PageMetric>();
+    @XmlElementWrapper(name = "pageMetrics")
+    @XmlElement(name = "pageMetric")
+    protected ArrayList<PageMetric> pageTimes = new ArrayList<>();
+    @XmlElement
     protected Collection<String> proxyServers = null;
+    @XmlElement
     protected String errorMessage = null;
+    @XmlElement
     protected String errorCode = null;
+    @XmlElement
     protected Lifecycle lifecycle = Lifecycle.NONE;
+    @XmlElement
     protected String queryAuthorizations = null;
+    @XmlElement
     protected Date beginDate = null;
+    @XmlElement
     protected Date endDate = null;
+    @XmlElementWrapper(name = "positiveSelectors")
+    @XmlElement(name = "positiveSelector")
     protected List<String> positiveSelectors = null;
+    @XmlElementWrapper(name = "negativeSelectors")
+    @XmlElement(name = "negativeSelector")
     protected List<String> negativeSelectors = null;
+    @XmlElement
     protected Date lastUpdated = null;
+    @XmlElement
     protected String columnVisibility = null;
+    @XmlElement
     protected String queryLogic = null;
+    @XmlElement
     protected long numPages = 0;
+    @XmlElement
     protected long numResults = 0;
+    @XmlElement
     protected String queryName = null;
+    @XmlElement
     protected Set<Parameter> parameters = new HashSet<Parameter>();
+    @XmlElement
     protected long sourceCount = 0;
+    @XmlElement
     protected long nextCount = 0;
+    @XmlElement
     protected long seekCount = 0;
+    @XmlElement
     protected long yieldCount = 0L;
+    @XmlElement
     protected long docRanges = 0;
+    @XmlElement
     protected long fiRanges = 0;
+    @XmlElement
     protected String plan = null;
+    @XmlElement
     protected long loginTime = -1;
+    @XmlElementWrapper(name = "predictions")
+    @XmlElement(name = "prediction")
     protected Set<Prediction> predictions = new HashSet<Prediction>();
     protected int lastWrittenHash = 0;
     protected long numUpdates = 0;
@@ -656,16 +717,20 @@ public abstract class BaseQueryMetric implements Serializable {
         this.predictions = predictions;
     }
     
-    // @Override
-    // public void setMarkings(Map<String,String> markings) {
-    // // TODO: We need only the columnVisibility piece here....create separate implementations?
-    // this.columnVisibility = MarkingFunctions.Encoding.toString(markings);
-    // }
-    //
-    // @Override
-    // public Map<String,String> getMarkings() {
-    // return MarkingFunctions.Encoding.fromString(this.columnVisibility);
-    // }
+    @Override
+    public void setMarkings(Map<String,String> markings) {
+        // TODO: We need only the columnVisibility piece here....create separate implementations?
+        this.columnVisibility = MarkingFunctions.Encoding.toString(markings);
+    }
+    
+    @Override
+    public Map<String,String> getMarkings() {
+        if (this.columnVisibility == null) {
+            return null;
+        } else {
+            return MarkingFunctions.Encoding.fromString(this.columnVisibility);
+        }
+    }
     
     public BaseQueryMetric duplicate() {
         // No op here
