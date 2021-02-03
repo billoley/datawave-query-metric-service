@@ -1,12 +1,12 @@
 package datawave.microservice.querymetrics.handler;
 
-import datawave.microservice.querymetrics.BaseQueryMetric;
-import datawave.microservice.querymetrics.BaseQueryMetric.PageMetric;
-import datawave.microservice.querymetrics.handler.QueryMetricHandler;
-import datawave.webservice.query.metric.QueryMetricSummary;
-import datawave.webservice.query.metric.QueryMetricsSummaryHtmlResponse;
-import datawave.webservice.query.metric.QueryMetricsSummaryResponse;
-import org.apache.commons.lang.time.DateUtils;
+import datawave.webservice.query.metric.BaseQueryMetric;
+//import datawave.microservice.querymetrics.BaseQueryMetric.PageMetric;
+//import datawave.microservice.querymetrics.handler.QueryMetricHandler;
+//import datawave.webservice.query.metric.QueryMetricSummary;
+//import datawave.webservice.query.metric.QueryMetricsSummaryHtmlResponse;
+//import datawave.webservice.query.metric.QueryMetricsSummaryResponse;
+//import org.apache.commons.lang.time.DateUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;

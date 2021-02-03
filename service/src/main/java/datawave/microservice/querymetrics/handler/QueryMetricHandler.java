@@ -1,6 +1,6 @@
 package datawave.microservice.querymetrics.handler;
 
-import datawave.microservice.querymetrics.BaseQueryMetric;
+import datawave.webservice.query.metric.BaseQueryMetric;
 import datawave.security.authorization.DatawavePrincipal;
 
 import java.util.Date;

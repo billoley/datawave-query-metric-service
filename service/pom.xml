@@ -18,6 +18,7 @@
     </scm>
     <properties>
         <start-class>datawave.microservice.authorization.AuthorizationService</start-class>
+        <version.accumulo>1.9.2</version.accumulo>
         <version.authorization-api>1.10-SNAPSHOT</version.authorization-api>
         <version.datawave>3.1.6</version.datawave>
         <version.microservice.hazelcast-client>1.5</version.microservice.hazelcast-client>
@@ -27,7 +28,17 @@
         <dependencies>
             <dependency>
                 <groupId>gov.nsa.datawave</groupId>
+                <artifactId>datawave-core</artifactId>
+                <version>${version.datawave}</version>
+            </dependency>
+            <dependency>
+                <groupId>gov.nsa.datawave</groupId>
                 <artifactId>datawave-ingest-core</artifactId>
+                <version>${version.datawave}</version>
+            </dependency>
+            <dependency>
+                <groupId>gov.nsa.datawave</groupId>
+                <artifactId>datawave-query-core</artifactId>
                 <version>${version.datawave}</version>
             </dependency>
             <dependency>
@@ -55,12 +66,30 @@
                 <artifactId>datawave-ws-query</artifactId>
                 <version>${version.datawave}</version>
             </dependency>
+            <dependency>
+                <groupId>io.github.classgraph</groupId>
+                <artifactId>classgraph</artifactId>
+                <version>4.8.102</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.accumulo</groupId>
+                <artifactId>accumulo-minicluster</artifactId>
+                <version>${version.accumulo}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>gov.nsa.datawave</groupId>
+            <artifactId>datawave-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>gov.nsa.datawave</groupId>
             <artifactId>datawave-ingest-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>gov.nsa.datawave</groupId>
+            <artifactId>datawave-query-core</artifactId>
         </dependency>
         <dependency>
             <groupId>gov.nsa.datawave.microservice</groupId>
@@ -90,6 +119,16 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.classgraph</groupId>
+            <artifactId>classgraph</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.accumulo</groupId>
+            <artifactId>accumulo-minicluster</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <repositories>

@@ -1,5 +1,6 @@
 package datawave.microservice.querymetrics;
 
+import datawave.webservice.query.metric.QueryMetric;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;

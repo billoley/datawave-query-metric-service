@@ -24,6 +24,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
+import datawave.webservice.query.metric.QueryMetric;
 
 import java.util.ArrayList;
 import java.util.Collections;

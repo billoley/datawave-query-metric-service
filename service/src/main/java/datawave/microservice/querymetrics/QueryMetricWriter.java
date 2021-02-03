@@ -1,25 +1,23 @@
 package datawave.microservice.querymetrics;
 
-import datawave.configuration.spring.SpringBean;
+import datawave.microservice.querymetrics.config.QueryMetricWriterProperties;
 import datawave.microservice.querymetrics.handler.QueryMetricHandler;
 import datawave.security.authorization.DatawavePrincipal;
-import datawave.webservice.common.connection.AccumuloConnectionFactory;
+import datawave.util.timely.UdpClient;
+import datawave.webservice.query.metric.BaseQueryMetric;
+import datawave.webservice.query.metric.BaseQueryMetric.Lifecycle;
+import datawave.webservice.query.metric.BaseQueryMetric.PageMetric;
 import datawave.webservice.query.metric.QueryMetricHolder;
-import datawave.webservice.query.metric.QueryMetricMessage;
-import datawave.webservice.query.metric.QueryMetricsWriterConfiguration;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.builder.CompareToBuilder;
 import org.apache.log4j.Logger;
-import org.apache.logging.log4j.message.ObjectMessage;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cloud.endpoint.event.RefreshEvent;
-import reactor.netty.udp.UdpClient;
-import datawave.microservice.querymetrics.BaseQueryMetric.Lifecycle;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
-import javax.ejb.Schedule;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.spi.BeanManager;
 import java.text.DecimalFormat;
@@ -32,20 +30,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import datawave.microservice.querymetrics.BaseQueryMetric.PageMetric;
+import org.springframework.stereotype.Component;
 
+@Component
 public class QueryMetricWriter {
     
     private Logger log = Logger.getLogger(this.getClass());
     
     @Autowired
-    private AccumuloConnectionFactory connectionFactory;
+    @Qualifier("warehouse")
+    Connector connection;
     
     @Autowired
     private QueryMetricHandler<? extends BaseQueryMetric> queryMetricHandler;
     
     @Autowired
-    private QueryMetricsWriterConfiguration config;
+    private QueryMetricWriterProperties queryMetricWriterProperties;
     
     private UdpClient timelyClient = null;
     private Map<String,Long> lastPageMetricMap;
@@ -58,8 +58,8 @@ public class QueryMetricWriter {
     private static volatile AtomicBoolean receivingMetrics = new AtomicBoolean(false);
     
     private UdpClient createUdpClient() {
-        if (config != null && StringUtils.isNotBlank(config.getTimelyHost())) {
-            return new UdpClient(config.getTimelyHost(), config.getTimelyPort());
+        if (queryMetricWriterProperties != null && StringUtils.isNotBlank(queryMetricWriterProperties.getTimelyHost())) {
+            return new UdpClient(queryMetricWriterProperties.getTimelyHost(), queryMetricWriterProperties.getTimelyPort());
         } else {
             return null;
         }
@@ -81,92 +81,92 @@ public class QueryMetricWriter {
         timelyClient = createUdpClient();
     }
     
-//    @Schedule(hour = "*", minute = "*", second = "*/10", persistent = false)
-//    public void receiveQueryMetrics() {
-//
-//        if (receivingMetrics.compareAndSet(false, true)) {
-//
-//            long start = System.currentTimeMillis();
-//            List<QueryMetricHolder> failedMetrics = new ArrayList<>();
-//            try {
-//                if (!metricQueue.isEmpty()) {
-//                    try {
-//                        // write previously failed metrics
-//                        failedMetrics = writeMetrics(queryMetricHandler, metricQueue);
-//                        int successful = metricQueue.size() - failedMetrics.size();
-//                        if (successful > 0) {
-//                            // logged at ERROR to record successful write of previously failed writes
-//                            log.error("Wrote " + successful + " previously failed query metric updates");
-//                        }
-//                        if (!failedMetrics.isEmpty()) {
-//                            throw new IllegalStateException(failedMetrics.size() + " metrics failed write");
-//                        }
-//                    } catch (Throwable t) {
-//                        log.error(failedMetrics.size() + " metric updates failed a second time, removing");
-//                        for (QueryMetricHolder h : failedMetrics) {
-//                            log.error("Failed write : " + h.getQueryMetric());
-//                        }
-//                    } finally {
-//                        metricQueue.clear();
-//                    }
-//                }
-//
-//                try (JMSConsumer consumer = jmsContext.createConsumer(dest)) {
-//                    Message message;
-//                    do {
-//                        message = consumer.receive(500);
-//                        if (message != null) {
-//                            try {
-//                                if (message instanceof ObjectMessage) {
-//                                    ObjectMessage objectMessage = (ObjectMessage) message;
-//                                    Object o = objectMessage.getObject();
-//                                    QueryMetricHolder queryMetricHolder = null;
-//                                    if (o instanceof QueryMetricHolder) {
-//                                        queryMetricHolder = (QueryMetricHolder) o;
-//                                    } else if (o instanceof QueryMetricMessage) {
-//                                        queryMetricHolder = ((QueryMetricMessage) o).getMetricHolder();
-//                                    }
-//                                    if (queryMetricHolder != null) {
-//                                        metricQueue.add(queryMetricHolder);
-//                                    }
-//                                }
-//                            } catch (Exception e) {
-//                                log.error(e.getMessage() + " messageID:" + message.getJMSMessageID());
-//                                continue;
-//                            }
-//                        }
-//                        // break out of loop every minute to ensure flush and acknowledge messages
-//                        if (metricQueue.size() >= 1000 || (System.currentTimeMillis() - start) > 60000) {
-//                            break;
-//                        }
-//                    } while (message != null);
-//                }
-//
-//                failedMetrics = writeMetrics(queryMetricHandler, metricQueue);
-//                if (log.isTraceEnabled() && (metricQueue.size() - failedMetrics.size()) > 0) {
-//                    log.trace("Wrote " + (metricQueue.size() - failedMetrics.size()) + " query metric updates");
-//                }
-//                metricQueue.clear();
-//                if (!failedMetrics.isEmpty()) {
-//                    metricQueue.addAll(failedMetrics);
-//                    throw new IllegalStateException(metricQueue.size() + " metrics failed write");
-//                }
-//            } catch (Throwable t) {
-//                log.error(t.getMessage(), t);
-//                log.error("Error writing " + metricQueue.size() + " query metric updates.  Creating new queryMetricHandler.");
-//                // error during write or flush, create a new handler so that we can re-try next time
-//                queryMetricHandler.reload();
-//            } finally {
-//                try {
-//                    queryMetricHandler.flush();
-//                } catch (Throwable t) {
-//                    log.error(t.getMessage(), t);
-//                } finally {
-//                    receivingMetrics.set(false);
-//                }
-//            }
-//        }
-//    }
+    // @Schedule(hour = "*", minute = "*", second = "*/10", persistent = false)
+    // public void receiveQueryMetrics() {
+    //
+    // if (receivingMetrics.compareAndSet(false, true)) {
+    //
+    // long start = System.currentTimeMillis();
+    // List<QueryMetricHolder> failedMetrics = new ArrayList<>();
+    // try {
+    // if (!metricQueue.isEmpty()) {
+    // try {
+    // // write previously failed metrics
+    // failedMetrics = writeMetrics(queryMetricHandler, metricQueue);
+    // int successful = metricQueue.size() - failedMetrics.size();
+    // if (successful > 0) {
+    // // logged at ERROR to record successful write of previously failed writes
+    // log.error("Wrote " + successful + " previously failed query metric updates");
+    // }
+    // if (!failedMetrics.isEmpty()) {
+    // throw new IllegalStateException(failedMetrics.size() + " metrics failed write");
+    // }
+    // } catch (Throwable t) {
+    // log.error(failedMetrics.size() + " metric updates failed a second time, removing");
+    // for (QueryMetricHolder h : failedMetrics) {
+    // log.error("Failed write : " + h.getQueryMetric());
+    // }
+    // } finally {
+    // metricQueue.clear();
+    // }
+    // }
+    //
+    // try (JMSConsumer consumer = jmsContext.createConsumer(dest)) {
+    // Message message;
+    // do {
+    // message = consumer.receive(500);
+    // if (message != null) {
+    // try {
+    // if (message instanceof ObjectMessage) {
+    // ObjectMessage objectMessage = (ObjectMessage) message;
+    // Object o = objectMessage.getObject();
+    // QueryMetricHolder queryMetricHolder = null;
+    // if (o instanceof QueryMetricHolder) {
+    // queryMetricHolder = (QueryMetricHolder) o;
+    // } else if (o instanceof QueryMetricMessage) {
+    // queryMetricHolder = ((QueryMetricMessage) o).getMetricHolder();
+    // }
+    // if (queryMetricHolder != null) {
+    // metricQueue.add(queryMetricHolder);
+    // }
+    // }
+    // } catch (Exception e) {
+    // log.error(e.getMessage() + " messageID:" + message.getJMSMessageID());
+    // continue;
+    // }
+    // }
+    // // break out of loop every minute to ensure flush and acknowledge messages
+    // if (metricQueue.size() >= 1000 || (System.currentTimeMillis() - start) > 60000) {
+    // break;
+    // }
+    // } while (message != null);
+    // }
+    //
+    // failedMetrics = writeMetrics(queryMetricHandler, metricQueue);
+    // if (log.isTraceEnabled() && (metricQueue.size() - failedMetrics.size()) > 0) {
+    // log.trace("Wrote " + (metricQueue.size() - failedMetrics.size()) + " query metric updates");
+    // }
+    // metricQueue.clear();
+    // if (!failedMetrics.isEmpty()) {
+    // metricQueue.addAll(failedMetrics);
+    // throw new IllegalStateException(metricQueue.size() + " metrics failed write");
+    // }
+    // } catch (Throwable t) {
+    // log.error(t.getMessage(), t);
+    // log.error("Error writing " + metricQueue.size() + " query metric updates. Creating new queryMetricHandler.");
+    // // error during write or flush, create a new handler so that we can re-try next time
+    // queryMetricHandler.reload();
+    // } finally {
+    // try {
+    // queryMetricHandler.flush();
+    // } catch (Throwable t) {
+    // log.error(t.getMessage(), t);
+    // } finally {
+    // receivingMetrics.set(false);
+    // }
+    // }
+    // }
+    // }
     
     private synchronized void sendMetricsToTimely(BaseQueryMetric queryMetric) {
         
@@ -178,7 +178,7 @@ public class QueryMetricWriter {
                 long createDate = queryMetric.getCreateDate().getTime();
                 
                 StringBuilder tagSb = new StringBuilder();
-                Set<String> configuredMetricTags = config.getTimelyMetricTags();
+                Set<String> configuredMetricTags = queryMetricWriterProperties.getTimelyMetricTags();
                 for (String fieldName : configuredMetricTags) {
                     String fieldValue = metricValues.get(fieldName);
                     if (!StringUtils.isBlank(fieldValue)) {

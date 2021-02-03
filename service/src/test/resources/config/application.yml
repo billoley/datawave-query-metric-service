@@ -30,6 +30,13 @@ server:
     trust-store-password: ${server.ssl.trust-store-password}
     trust-store-type: ${server.ssl.trust-store-type}
 
+warehouse-cluster:
+  accumulo:
+    zookeepers: 'mock'
+    instanceName: 'mock'
+    username: 'mock'
+    password: 'mock'
+
 management:
   endpoints:
     web:

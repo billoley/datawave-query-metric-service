@@ -7,6 +7,7 @@ import datawave.webservice.common.connection.AccumuloConnectionFactory.Priority;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
@@ -29,9 +30,11 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     private MultiTableBatchWriter mtbw = null;
@@ -71,8 +74,7 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     private static final int DEFAULT_MAX_LATENCY = 120000; // 1 minute
     private static final int DEFAULT_NUM_WRITE_THREADS = 4;
     
-    public AccumuloRecordWriter(AccumuloConnectionFactory connectionFactory, Configuration conf)
-                    throws AccumuloException, AccumuloSecurityException, IOException {
+    public AccumuloRecordWriter(Connector connector, Configuration conf) throws AccumuloException, AccumuloSecurityException, IOException {
         Level l = getLogLevel(conf);
         if (l != null) {
             log.setLevel(getLogLevel(conf));
@@ -91,14 +93,19 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
         
         if (!simulate) {
             try {
-                if (connectionFactory == null) {
-                    this.conn = getInstance(conf).getConnector(getUsername(conf), new PasswordToken(getPassword(conf)));
-                } else {
-                    this.connFactory = connectionFactory;
-                    Map<String,String> trackingMap = connectionFactory.getTrackingMap(Thread.currentThread().getStackTrace());
-                    this.conn = connectionFactory.getConnection(Priority.ADMIN, trackingMap);
-                }
+                // if (connectionFactory == null) {
+                // this.conn = getInstance(conf).getConnector(getUsername(conf), new PasswordToken(getPassword(conf)));
+                // } else {
+                // this.connFactory = connectionFactory;
+                // Map<String,String> trackingMap = connectionFactory.getTrackingMap(Thread.currentThread().getStackTrace());
+                // this.conn = connectionFactory.getConnection(Priority.ADMIN, trackingMap);
+                // }
                 mtbw = conn.createMultiTableBatchWriter(getMaxMutationBufferSize(conf), getMaxLatency(conf), getMaxWriteThreads(conf));
+                BatchWriterConfig bwConfig = new BatchWriterConfig();
+                bwConfig.setMaxMemory(getMaxMutationBufferSize(conf));
+                bwConfig.setMaxLatency(getMaxLatency(conf), TimeUnit.MILLISECONDS);
+                bwConfig.setMaxWriteThreads(getMaxWriteThreads(conf));
+                mtbw = connector.createMultiTableBatchWriter(bwConfig);
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
             }
@@ -297,7 +304,7 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
      * string, and is not intended to be secure.
      */
     protected static byte[] getPassword(Configuration conf) {
-        return Base64.decodeBase64(conf.get(PASSWORD, "").getBytes());
+        return Base64.decodeBase64(conf.get(PASSWORD, "").getBytes(Charset.forName("UTF-8")));
     }
     
     protected static boolean canCreateTables(Configuration conf) {

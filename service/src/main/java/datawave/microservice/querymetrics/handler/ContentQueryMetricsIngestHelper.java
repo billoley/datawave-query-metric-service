@@ -10,7 +10,7 @@ import datawave.query.jexl.JexlASTHelper;
 import datawave.query.jexl.visitors.TreeFlatteningRebuildingVisitor;
 import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.query.language.tree.QueryNode;
-import datawave.webservice.query.QueryImpl.Parameter;
+import datawave.webservice.query.QueryImpl;
 import datawave.webservice.query.metric.BaseQueryMetric;
 import datawave.webservice.query.metric.BaseQueryMetric.PageMetric;
 import datawave.webservice.query.metric.BaseQueryMetric.Prediction;
@@ -190,7 +190,7 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                 fields.put("QUERY_NAME", updatedQueryMetric.getQueryName());
             }
             
-            Set<Parameter> parameters = updatedQueryMetric.getParameters();
+            Set<QueryImpl.Parameter> parameters = updatedQueryMetric.getParameters();
             if (parameters != null && !parameters.isEmpty()) {
                 fields.put("PARAMETERS", QueryUtil.toParametersString(parameters));
             }
