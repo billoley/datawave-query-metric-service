@@ -18,11 +18,13 @@
     </scm>
     <properties>
         <start-class>datawave.microservice.authorization.AuthorizationService</start-class>
-        <version.accumulo>1.9.2</version.accumulo>
         <version.authorization-api>1.10-SNAPSHOT</version.authorization-api>
         <version.datawave>3.1.6</version.datawave>
+        <version.hadoop>3.0.1</version.hadoop>
+        <version.in-memory-accumulo>1.9.2</version.in-memory-accumulo>
         <version.microservice.hazelcast-client>1.5</version.microservice.hazelcast-client>
         <version.microservice.starter>1.6.5</version.microservice.starter>
+        <version.curator>4.2.0</version.curator>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -40,6 +42,11 @@
                 <groupId>gov.nsa.datawave</groupId>
                 <artifactId>datawave-query-core</artifactId>
                 <version>${version.datawave}</version>
+            </dependency>
+            <dependency>
+                <groupId>gov.nsa.datawave.contrib</groupId>
+                <artifactId>datawave-in-memory-accumulo</artifactId>
+                <version>${version.in-memory-accumulo}</version>
             </dependency>
             <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>
@@ -67,14 +74,29 @@
                 <version>${version.datawave}</version>
             </dependency>
             <dependency>
-                <groupId>io.github.classgraph</groupId>
-                <artifactId>classgraph</artifactId>
-                <version>4.8.102</version>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-auth</artifactId>
+                <version>${version.hadoop}</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.accumulo</groupId>
-                <artifactId>accumulo-minicluster</artifactId>
-                <version>${version.accumulo}</version>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-common</artifactId>
+                <version>${version.hadoop}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-hdfs</artifactId>
+                <version>${version.hadoop}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.curator</groupId>
+                <artifactId>curator-framework</artifactId>
+                <version>${version.curator}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.curator</groupId>
+                <artifactId>curator-client</artifactId>
+                <version>${version.curator}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -90,6 +112,10 @@
         <dependency>
             <groupId>gov.nsa.datawave</groupId>
             <artifactId>datawave-query-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>gov.nsa.datawave.contrib</groupId>
+            <artifactId>datawave-in-memory-accumulo</artifactId>
         </dependency>
         <dependency>
             <groupId>gov.nsa.datawave.microservice</groupId>
@@ -117,19 +143,29 @@
             <artifactId>datawave-ws-query</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-auth</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-hdfs</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-cache</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.github.classgraph</groupId>
-            <artifactId>classgraph</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.accumulo</groupId>
-            <artifactId>accumulo-minicluster</artifactId>
-            <scope>test</scope>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.apache.curator</groupId>-->
+<!--            <artifactId>curator-framework</artifactId>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>org.apache.curator</groupId>-->
+<!--            <artifactId>curator-client</artifactId>-->
+<!--        </dependency>-->
     </dependencies>
     <repositories>
         <repository>
