@@ -42,14 +42,17 @@ public class QueryMetricOperationsTest {
     
     private static final SubjectIssuerDNPair ALLOWED_CALLER = SubjectIssuerDNPair.of("cn=test.testcorp.com, ou=microservices, ou=development, o=testcorp, c=us",
                     "cn=testcorp ca, ou=security, o=testcorp, c=us");
-    private static final String updateUrl = "/querymetric/v1/update/%s";
+    private static final String updateUrl = "/querymetric/v1/update";
     
     @Autowired
     private RestTemplateBuilder restTemplateBuilder;
     
     @Autowired
     private JWTTokenHandler jwtTokenHandler;
-    
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @LocalServerPort
     private int webServicePort;
     
@@ -87,7 +90,6 @@ public class QueryMetricOperationsTest {
         try {
             List<QueryMetric> metricList = new ArrayList<>();
             metricList.add(m);
-            metricList.add(new QueryMetric());
             HttpEntity requestEntity = createRequestEntity(null, allowedCaller, metricList);
             ResponseEntity<String> responseEntity = restTemplate.postForEntity(uri.toUri(), requestEntity, String.class);
             System.out.println(responseEntity.getBody());
@@ -109,7 +111,6 @@ public class QueryMetricOperationsTest {
         }
         headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
         
-        ObjectMapper objectMapper = new ObjectMapper();
         return new HttpEntity<>(objectMapper.writeValueAsString(body), headers);
     }
 }

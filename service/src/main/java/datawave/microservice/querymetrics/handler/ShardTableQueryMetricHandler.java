@@ -1,6 +1,5 @@
 package datawave.microservice.querymetrics.handler;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -75,7 +74,6 @@ import datawave.webservice.query.QueryImpl.Parameter;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
-import java.net.URL;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -100,11 +98,9 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
     private static final String QUERY_METRICS_LOGIC_NAME = "QueryMetricsQuery";
     protected static final String DEFAULT_SECURITY_MARKING = "PUBLIC";
     
-    @Autowired
     @Qualifier("warehouse")
-    Connector connector;
+    protected Connector connector;
     
-    @Autowired
     protected QueryMetricHandlerProperties queryMetricHandlerProperties;
     
     private QueryMetricFactory metricFactory = new QueryMetricFactoryImpl();
@@ -127,12 +123,18 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
     private AccumuloRecordWriter recordWriter = null;
     
     private UIDBuilder<UID> uidBuilder = UID.builder();
-    
-    public ShardTableQueryMetricHandler() {
-        URL queryMetricsUrl = Thread.currentThread().getContextClassLoader().getResource("datawave/query/QueryMetrics.xml");
-        Preconditions.checkNotNull(queryMetricsUrl);
-        conf.addResource(queryMetricsUrl);
-        
+
+    @Autowired
+    public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
+            @Qualifier("warehouse") Connector connector) {
+        this.queryMetricHandlerProperties = queryMetricHandlerProperties;
+        this.connector = connector;
+
+        Map<String, String> properties = queryMetricHandlerProperties.getProperties();
+        properties.entrySet().forEach(e -> conf.set(e.getKey(), e.getValue()));
+//        URL queryMetricsUrl = Thread.currentThread().getContextClassLoader().getResource("datawave/query/QueryMetrics.xml");
+//        Preconditions.checkNotNull(queryMetricsUrl);
+//        conf.addResource(queryMetricsUrl);
         // encode the password because that's how the AccumuloRecordWriter
         String accumuloPassword = conf.get("AccumuloRecordWriter.password");
         byte[] encodedAccumuloPassword = Base64.encodeBase64(accumuloPassword.getBytes(Charset.forName("UTF-8")));

@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Lazy;
 @Configuration
 @EnableConfigurationProperties({AccumuloConfiguration.WarehouseClusterProperties.class})
 public class AccumuloConfiguration {
+
     @ConfigurationProperties(prefix = "warehouse-cluster")
     public static class WarehouseClusterProperties extends ClusterProperties {
         

@@ -47,3 +47,57 @@ logging:
     datawave.microservice.authorization.cached: DEBUG
 
 hazelcast.client.enabled: false
+
+datawave:
+  query:
+    metric:
+      handler:
+        properties:
+          AccumuloRecordWriter.zooKeepers: ${zookeeper.hosts}
+          AccumuloRecordWriter.instanceName: ${accumulo.instance.name}
+          AccumuloRecordWriter.username: ${accumulo.user.name}
+          AccumuloRecordWriter.password: ${accumulo.user.password}
+          AccumuloRecordWriter.createtables: true
+          QueryMetrics_e.table.config.class: datawave.ingest.table.config.ShardTableConfigHelper
+          QueryMetrics_i.table.config.class: datawave.ingest.table.config.ShardTableConfigHelper
+          QueryMetrics_r.table.config.class: datawave.ingest.table.config.ShardTableConfigHelper
+          QueryMetrics_m.table.config.class: datawave.ingest.table.config.MetadataTableConfigHelper
+          metadata.table.name: QueryMetrics_m
+          metadata.term.frequency.enabled: true
+          # could be system specific
+          num.shards: 10
+          # Comma-separated list of tables that need to pull splits from accumulo
+          sharded.table.names: QueryMetrics_e
+          shard.table.name: QueryMetrics_e
+          # The list of locality groups in the form groupname:columnfamily, comma separated
+          shard.table.locality.groups: fullcontent:d,termfrequency:tf
+          shard.global.index.table.name: QueryMetrics_i
+          shard.global.rindex.table.name: QueryMetrics_r
+          # This is the type of data being ingested
+          data.name: querymetrics
+          querymetrics.ingest.fatal.errors: UUID_MISSING
+          querymetrics.ingest.helper.class: datawave.query.metrics.ContentQueryMetricsIngestHelper
+          querymetrics.data.category.date: CREATE_DATE
+          querymetrics.data.category.date.format: yyyyMMdd HHmmss.S
+          # This is the separator to use for delimited text, and between configuration file parameters with multiple values.
+          querymetrics.data.separator: ","
+          querymetrics.data.category.uuid.fields: QUERY_ID
+          querymetrics.data.header: none
+          querymetrics.data.field.length.threshold: 4049
+          querymetrics.data.category.index: AUTHORIZATIONS,BEGIN_DATE,CREATE_CALL_TIME,CREATE_DATE,DOC_RANGES,ELAPSED_TIME,END_DATE,ERROR_CODE,ERROR_MESSAGE,FI_RANGES,HOST,LIFECYCLE,NEGATIVE_SELECTORS,NEXT_COUNT,NUM_PAGES,NUM_RESULTS,NUM_UPDATES,POSITIVE_SELECTORS,PROXY_SERVERS,QUERY,QUERY_ID,QUERY_TYPE,QUERY_LOGIC,SETUP_TIME,USER,SEEK_COUNT,SOURCE_COUNT,QUERY_NAME,PARAMETERS
+          querymetrics.data.category.index.reverse: ERROR_CODE,ERROR_MESSAGE,HOST,NEGATIVE_SELECTORS,POSITIVE_SELECTORS,PROXY_SERVERS,QUERY,QUERY_ID,QUERY_TYPE,QUERY_LOGIC,USER,QUERY_NAME,PARAMETERS
+          querymetrics.data.category.token.fieldname.designator:
+          querymetrics.data.default.type.class: datawave.data.type.LcNoDiacriticsType
+          querymetrics.CREATE_CALL_TIME.data.field.type.class: datawave.data.type.NumberType
+          querymetrics.SETUP_TIME.data.field.type.class: datawave.data.type.NumberType
+          querymetrics.ELAPSED_TIME.data.field.type.class: datawave.data.type.NumberType
+          querymetrics.NUM_RESULTS.data.field.type.class: datawave.data.type.NumberType
+          querymetrics.NUM_PAGES.data.field.type.class: datawave.data.type.NumberType
+          querymetrics.NUM_UPDATES.data.field.type.class: datawave.data.type.NumberType
+          shard.table.index.bloom.enable: false
+          AccumuloRecordWriter.maxmemory: 10000000
+          AccumuloRecordWriter.maxlatency: 60000
+          AccumuloRecordWriter.writethreads: 4
+          # Name of the class to use for policy enforcement
+          # ${query.metrics.ingest.policy.enforcer.class}
+          querymetrics.ingest.policy.enforcer.class:
