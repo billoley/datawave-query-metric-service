@@ -8,7 +8,7 @@ import java.util.Map;
 
 public interface QueryMetricHandler<T extends BaseQueryMetric> {
     
-    void updateMetric(T metric, DatawavePrincipal datawavePrincipal) throws Exception;
+    void updateMetric(T metric) throws Exception;
     
     Map<String,String> getEventFields(BaseQueryMetric queryMetric);
     

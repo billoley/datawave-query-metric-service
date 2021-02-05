@@ -259,8 +259,8 @@ public class QueryMetricWriter {
                 try {
                     BaseQueryMetric queryMetric = queryMetricHolder.getQueryMetric();
                     handleLegacyEvents(queryMetric);
-                    DatawavePrincipal datawavePrincipal = queryMetricHolder.getPrincipal();
-                    queryMetricHandler.updateMetric(queryMetric, datawavePrincipal);
+//                    DatawavePrincipal datawavePrincipal = queryMetricHolder.getPrincipal();
+                    queryMetricHandler.updateMetric(queryMetric);
                     sendMetricsToTimely(queryMetric);
                 } catch (Throwable t) {
                     log.error("query metric updates failed: " + t.getMessage(), t);

@@ -45,6 +45,7 @@ management:
 logging:
   level:
     datawave.microservice.authorization.cached: DEBUG
+    ROOT: TRACE
 
 hazelcast.client.enabled: false
 
@@ -100,4 +101,4 @@ datawave:
           AccumuloRecordWriter.writethreads: 4
           # Name of the class to use for policy enforcement
           # ${query.metrics.ingest.policy.enforcer.class}
-          querymetrics.ingest.policy.enforcer.class:
+          querymetrics.ingest.policy.enforcer.class: datawave.policy.NoOpIngestPolicyEnforcer

@@ -308,15 +308,15 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
     
     @SuppressWarnings("unchecked")
     @Override
-    public void updateMetric(QueryMetric updatedQueryMetric, DatawavePrincipal datawavePrincipal) throws Exception {
+    public void updateMetric(QueryMetric updatedQueryMetric) throws Exception {
         Date lastUpdated = updatedQueryMetric.getLastUpdated();
         
         try {
             enableLogs(false);
-            String sid = updatedQueryMetric.getUser();
-            if (sid == null) {
-                sid = datawavePrincipal.getShortName();
-            }
+//            String sid = updatedQueryMetric.getUser();
+//            if (sid == null) {
+//                sid = datawavePrincipal.getShortName();
+//            }
             
             // find and remove previous entries
             BaseQueryMetricListResponse response = new QueryMetricListResponse();
@@ -364,7 +364,9 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
                     query.setQueryName(QUERY_METRICS_LOGIC_NAME);
                     query.setColumnVisibility(queryMetricHandlerProperties.getVisibilityString());
                     query.setQueryAuthorizations(connectorAuthorizations);
-                    query.setUserDN(sid);
+                    if (updatedQueryMetric.getUserDN() != null) {
+                        query.setUserDN(updatedQueryMetric.getUserDN());
+                    }
                     query.setExpirationDate(DateUtils.addDays(new Date(), 1));
                     query.setPagesize(1000);
                     query.setId(UUID.randomUUID());
