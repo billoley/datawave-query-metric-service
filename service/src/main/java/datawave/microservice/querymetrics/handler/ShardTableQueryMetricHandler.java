@@ -53,7 +53,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -69,6 +68,8 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Component;
 import datawave.webservice.query.QueryImpl.Parameter;
 
@@ -98,11 +99,8 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
     private static final String QUERY_METRICS_LOGIC_NAME = "QueryMetricsQuery";
     protected static final String DEFAULT_SECURITY_MARKING = "PUBLIC";
     
-    @Qualifier("warehouse")
     protected Connector connector;
-    
     protected QueryMetricHandlerProperties queryMetricHandlerProperties;
-    
     private QueryMetricFactory metricFactory = new QueryMetricFactoryImpl();
     
     private String connectorAuthorizations = null;
@@ -113,10 +111,8 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
     private static final String NULL_BYTE = "\0";
     public static final String CONTEXT_WRITER_MAX_CACHE_SIZE = "context.writer.max.cache.size";
     
-    // static to share the cache across instances of this class held by QueryExecutorBean, CachedResultsBean, QueryMetricsEnrichmentInterceptor, etc
-    @SuppressWarnings("unchecked")
-    private static Map metricsCache = Collections.synchronizedMap(new LRUMap(5000));
-    
+    private Cache metricsCache;
+
     private final Configuration conf = new Configuration();
     private final StatusReporter reporter = new MockStatusReporter();
     private final AtomicBoolean tablesChecked = new AtomicBoolean(false);
@@ -126,19 +122,17 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
 
     @Autowired
     public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
-            @Qualifier("warehouse") Connector connector) {
+            @Qualifier("warehouse") Connector connector, CacheManager cacheManager) {
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.connector = connector;
 
         Map<String, String> properties = queryMetricHandlerProperties.getProperties();
         properties.entrySet().forEach(e -> conf.set(e.getKey(), e.getValue()));
-//        URL queryMetricsUrl = Thread.currentThread().getContextClassLoader().getResource("datawave/query/QueryMetrics.xml");
-//        Preconditions.checkNotNull(queryMetricsUrl);
-//        conf.addResource(queryMetricsUrl);
         // encode the password because that's how the AccumuloRecordWriter
         String accumuloPassword = conf.get("AccumuloRecordWriter.password");
         byte[] encodedAccumuloPassword = Base64.encodeBase64(accumuloPassword.getBytes(Charset.forName("UTF-8")));
         conf.set("AccumuloRecordWriter.password", new String(encodedAccumuloPassword, Charset.forName("UTF-8")));
+        this.metricsCache = cacheManager.getCache("lastWrittenQueryMetrics");
     }
     
     @PostConstruct
@@ -356,22 +350,9 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
                 // if numPages > 0 or Lifecycle > DEFINED, then we should have a metric cached already
                 // if we don't, then query for the current stored metric
                 if (updatedQueryMetric.getNumPages() > 0 || updatedQueryMetric.getLifecycle().compareTo(Lifecycle.DEFINED) > 0) {
-                    QueryImpl query = new QueryImpl();
-                    query.setBeginDate(begin);
-                    query.setEndDate(end);
-                    query.setQueryLogicName(QUERY_METRICS_LOGIC_NAME);
-                    query.setQuery("QUERY_ID == '" + updatedQueryMetric.getQueryId() + "'");
-                    query.setQueryName(QUERY_METRICS_LOGIC_NAME);
-                    query.setColumnVisibility(queryMetricHandlerProperties.getVisibilityString());
-                    query.setQueryAuthorizations(connectorAuthorizations);
-                    if (updatedQueryMetric.getUserDN() != null) {
-                        query.setUserDN(updatedQueryMetric.getUserDN());
-                    }
-                    query.setExpirationDate(DateUtils.addDays(new Date(), 1));
-                    query.setPagesize(1000);
-                    query.setId(UUID.randomUUID());
-                    query.setParameters(ImmutableMap.of(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true"));
-                    queryMetrics = getQueryMetrics(response, query);
+
+
+
                 }
             } else {
                 queryMetrics = Collections.singletonList(cachedQueryMetric);
@@ -402,7 +383,26 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
             enableLogs(true);
         }
     }
-    
+
+    public getQueryMetric(String queryId) {
+        QueryImpl query = new QueryImpl();
+        query.setBeginDate(begin);
+        query.setEndDate(end);
+        query.setQueryLogicName(QUERY_METRICS_LOGIC_NAME);
+        query.setQuery("QUERY_ID == '" + updatedQueryMetric.getQueryId() + "'");
+        query.setQueryName(QUERY_METRICS_LOGIC_NAME);
+        query.setColumnVisibility(queryMetricHandlerProperties.getVisibilityString());
+        query.setQueryAuthorizations(connectorAuthorizations);
+        if (updatedQueryMetric.getUserDN() != null) {
+            query.setUserDN(updatedQueryMetric.getUserDN());
+        }
+        query.setExpirationDate(DateUtils.addDays(new Date(), 1));
+        query.setPagesize(1000);
+        query.setId(UUID.randomUUID());
+        query.setParameters(ImmutableMap.of(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true"));
+        queryMetrics = getQueryMetrics(response, query);
+    }
+
     private List<QueryMetric> getQueryMetrics(BaseResponse response, Query query/* , DatawavePrincipal datawavePrincipal */) {
         List<QueryMetric> queryMetrics = new ArrayList<>();
         RunningQuery runningQuery;
