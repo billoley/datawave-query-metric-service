@@ -384,23 +384,26 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
         }
     }
 
-    public getQueryMetric(String queryId) {
+    public QueryMetric getQueryMetric(String queryId) {
+        Date end = new Date();
+        Date begin = DateUtils.setYears(end, 2000);
         QueryImpl query = new QueryImpl();
         query.setBeginDate(begin);
         query.setEndDate(end);
         query.setQueryLogicName(QUERY_METRICS_LOGIC_NAME);
-        query.setQuery("QUERY_ID == '" + updatedQueryMetric.getQueryId() + "'");
+        query.setQuery("QUERY_ID == '" + queryId + "'");
         query.setQueryName(QUERY_METRICS_LOGIC_NAME);
         query.setColumnVisibility(queryMetricHandlerProperties.getVisibilityString());
         query.setQueryAuthorizations(connectorAuthorizations);
-        if (updatedQueryMetric.getUserDN() != null) {
-            query.setUserDN(updatedQueryMetric.getUserDN());
-        }
+//        if (updatedQueryMetric.getUserDN() != null) {
+//            query.setUserDN(updatedQueryMetric.getUserDN());
+//        }
         query.setExpirationDate(DateUtils.addDays(new Date(), 1));
         query.setPagesize(1000);
         query.setId(UUID.randomUUID());
         query.setParameters(ImmutableMap.of(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true"));
-        queryMetrics = getQueryMetrics(response, query);
+        List<QueryMetric> queryMetrics = getQueryMetrics(null, query);
+        return queryMetrics.isEmpty() ? null : queryMetrics.get(0);
     }
 
     private List<QueryMetric> getQueryMetrics(BaseResponse response, Query query/* , DatawavePrincipal datawavePrincipal */) {

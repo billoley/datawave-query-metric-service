@@ -52,11 +52,13 @@ public class AccumuloMapStore implements MapStore<String, QueryMetric> {
     }
 
     @Override public QueryMetric load(String s) {
-        this.handler.
+        return this.handler.getQueryMetric(s);
     }
 
     @Override public Map<String,QueryMetric> loadAll(Collection<String> collection) {
-        return null;
+        collection.stream(queryId -> {
+            this.handler.getQueryMetric(queryId);
+        });
     }
 
     @Override public Iterable<String> loadAllKeys() {
