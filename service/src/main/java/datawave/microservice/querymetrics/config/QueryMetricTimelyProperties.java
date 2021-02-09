@@ -5,8 +5,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.util.HashSet;
 import java.util.Set;
 
-@ConfigurationProperties(prefix = "datawave.query.metric.writer")
-public class QueryMetricWriterProperties {
+@ConfigurationProperties(prefix = "datawave.query.metric.timely")
+public class QueryMetricTimelyProperties {
     
     private String timelyHost = null;
     private int timelyPort = 0;

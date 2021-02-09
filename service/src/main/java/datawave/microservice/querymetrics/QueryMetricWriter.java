@@ -1,8 +1,7 @@
 package datawave.microservice.querymetrics;
 
-import datawave.microservice.querymetrics.config.QueryMetricWriterProperties;
+import datawave.microservice.querymetrics.config.QueryMetricTimelyProperties;
 import datawave.microservice.querymetrics.handler.QueryMetricHandler;
-import datawave.security.authorization.DatawavePrincipal;
 import datawave.util.timely.UdpClient;
 import datawave.webservice.query.metric.BaseQueryMetric;
 import datawave.webservice.query.metric.BaseQueryMetric.Lifecycle;
@@ -45,7 +44,7 @@ public class QueryMetricWriter {
     private QueryMetricHandler<? extends BaseQueryMetric> queryMetricHandler;
     
     @Autowired
-    private QueryMetricWriterProperties queryMetricWriterProperties;
+    private QueryMetricTimelyProperties queryMetricTimelyProperties;
     
     private UdpClient timelyClient = null;
     private Map<String,Long> lastPageMetricMap;
@@ -58,8 +57,8 @@ public class QueryMetricWriter {
     private static volatile AtomicBoolean receivingMetrics = new AtomicBoolean(false);
     
     private UdpClient createUdpClient() {
-        if (queryMetricWriterProperties != null && StringUtils.isNotBlank(queryMetricWriterProperties.getTimelyHost())) {
-            return new UdpClient(queryMetricWriterProperties.getTimelyHost(), queryMetricWriterProperties.getTimelyPort());
+        if (queryMetricTimelyProperties != null && StringUtils.isNotBlank(queryMetricTimelyProperties.getTimelyHost())) {
+            return new UdpClient(queryMetricTimelyProperties.getTimelyHost(), queryMetricTimelyProperties.getTimelyPort());
         } else {
             return null;
         }
@@ -178,7 +177,7 @@ public class QueryMetricWriter {
                 long createDate = queryMetric.getCreateDate().getTime();
                 
                 StringBuilder tagSb = new StringBuilder();
-                Set<String> configuredMetricTags = queryMetricWriterProperties.getTimelyMetricTags();
+                Set<String> configuredMetricTags = queryMetricTimelyProperties.getTimelyMetricTags();
                 for (String fieldName : configuredMetricTags) {
                     String fieldValue = metricValues.get(fieldName);
                     if (!StringUtils.isBlank(fieldValue)) {

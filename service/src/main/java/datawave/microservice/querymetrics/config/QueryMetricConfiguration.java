@@ -20,7 +20,7 @@ import org.springframework.context.annotation.Configuration;
 import static datawave.marking.MarkingFunctions.Factory.log;
 
 @Configuration
-@EnableConfigurationProperties({QueryMetricWriterProperties.class, QueryMetricHandlerProperties.class})
+@EnableConfigurationProperties({QueryMetricTimelyProperties.class, QueryMetricHandlerProperties.class})
 
 public class QueryMetricConfiguration {
 

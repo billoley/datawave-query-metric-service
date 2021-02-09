@@ -384,7 +384,7 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
         }
     }
 
-    public QueryMetric getQueryMetric(String queryId) {
+    public QueryMetric getQueryMetric(final String queryId) {
         Date end = new Date();
         Date begin = DateUtils.setYears(end, 2000);
         QueryImpl query = new QueryImpl();

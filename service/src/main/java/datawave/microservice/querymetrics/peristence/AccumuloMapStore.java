@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Component
 public class AccumuloMapStore implements MapStore<String, QueryMetric> {
@@ -56,9 +57,9 @@ public class AccumuloMapStore implements MapStore<String, QueryMetric> {
     }
 
     @Override public Map<String,QueryMetric> loadAll(Collection<String> collection) {
-        collection.stream(queryId -> {
-            this.handler.getQueryMetric(queryId);
-        });
+        return collection.stream().map(id -> {
+            this.handler.getQueryMetric(queryId)
+        }).collect(Collectors.toMap());
     }
 
     @Override public Iterable<String> loadAllKeys() {
