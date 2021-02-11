@@ -49,10 +49,10 @@ public class QueryMetricOperationsTest {
     
     @Autowired
     private JWTTokenHandler jwtTokenHandler;
-
+    
     @Autowired
     private ObjectMapper objectMapper;
-
+    
     @LocalServerPort
     private int webServicePort;
     

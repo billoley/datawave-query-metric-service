@@ -6,9 +6,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.RetryOneTime;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.cache.CacheType;
@@ -41,12 +38,12 @@ public class QueryMetricTestConfiguration {
     @Qualifier("warehouse")
     public Instance memoryWarehouseInstance() throws Exception {
         final Instance instance = new InMemoryInstance();
-//        {
-//            @Override
-//            public String getZooKeepers() {
-//                return String.format("localhost:%d", ZK_PORT);
-//            }
-//        };
+        // {
+        // @Override
+        // public String getZooKeepers() {
+        // return String.format("localhost:%d", ZK_PORT);
+        // }
+        // };
 //        //@formatter:off
 //        try (CuratorFramework curator = CuratorFrameworkFactory.newClient(
 //        String.format("localhost:%d", ZK_PORT), new RetryOneTime(500))) {

@@ -32,9 +32,7 @@ import datawave.webservice.query.logic.QueryLogic;
 import datawave.webservice.query.metric.BaseQueryMetric;
 import datawave.webservice.query.metric.BaseQueryMetric.Lifecycle;
 import datawave.webservice.query.metric.BaseQueryMetric.PageMetric;
-import datawave.webservice.query.metric.BaseQueryMetricListResponse;
 import datawave.webservice.query.metric.QueryMetric;
-import datawave.webservice.query.metric.QueryMetricListResponse;
 import datawave.webservice.query.result.event.EventBase;
 import datawave.webservice.query.result.event.FieldBase;
 import datawave.webservice.query.runner.RunningQuery;
@@ -52,7 +50,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -70,6 +67,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import datawave.webservice.query.QueryImpl.Parameter;
 
@@ -93,6 +91,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
+@Lazy
 public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMetric> {
     private static final Logger log = ThreadConfigurableLogger.getLogger(ShardTableQueryMetricHandler.class);
     
@@ -112,26 +111,20 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
     public static final String CONTEXT_WRITER_MAX_CACHE_SIZE = "context.writer.max.cache.size";
     
     private Cache metricsCache;
-
+    
     private final Configuration conf = new Configuration();
     private final StatusReporter reporter = new MockStatusReporter();
     private final AtomicBoolean tablesChecked = new AtomicBoolean(false);
     private AccumuloRecordWriter recordWriter = null;
     
     private UIDBuilder<UID> uidBuilder = UID.builder();
-
+    
     @Autowired
-    public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
-            @Qualifier("warehouse") Connector connector, CacheManager cacheManager) {
+    public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("warehouse") Connector connector,
+                    CacheManager cacheManager) {
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.connector = connector;
-
-        Map<String, String> properties = queryMetricHandlerProperties.getProperties();
-        properties.entrySet().forEach(e -> conf.set(e.getKey(), e.getValue()));
-        // encode the password because that's how the AccumuloRecordWriter
-        String accumuloPassword = conf.get("AccumuloRecordWriter.password");
-        byte[] encodedAccumuloPassword = Base64.encodeBase64(accumuloPassword.getBytes(Charset.forName("UTF-8")));
-        conf.set("AccumuloRecordWriter.password", new String(encodedAccumuloPassword, Charset.forName("UTF-8")));
+        queryMetricHandlerProperties.getProperties().entrySet().forEach(e -> conf.set(e.getKey(), e.getValue()));
         this.metricsCache = cacheManager.getCache("lastWrittenQueryMetrics");
     }
     
@@ -307,15 +300,15 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
         
         try {
             enableLogs(false);
-//            String sid = updatedQueryMetric.getUser();
-//            if (sid == null) {
-//                sid = datawavePrincipal.getShortName();
-//            }
+            // String sid = updatedQueryMetric.getUser();
+            // if (sid == null) {
+            // sid = datawavePrincipal.getShortName();
+            // }
             
             // find and remove previous entries
-            BaseQueryMetricListResponse response = new QueryMetricListResponse();
-            Date end = new Date();
-            Date begin = DateUtils.setYears(end, 2000);
+            // BaseQueryMetricListResponse response = new QueryMetricListResponse();
+            // Date end = new Date();
+            // Date begin = DateUtils.setYears(end, 2000);
             
             // user's DatawavePrincipal must have the Administrator role to use the Metrics query logic
             QueryMetric cachedQueryMetric;
@@ -350,9 +343,7 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
                 // if numPages > 0 or Lifecycle > DEFINED, then we should have a metric cached already
                 // if we don't, then query for the current stored metric
                 if (updatedQueryMetric.getNumPages() > 0 || updatedQueryMetric.getLifecycle().compareTo(Lifecycle.DEFINED) > 0) {
-
-
-
+                    queryMetrics = getQueryMetrics(updatedQueryMetric.getQueryId());
                 }
             } else {
                 queryMetrics = Collections.singletonList(cachedQueryMetric);
@@ -372,10 +363,10 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
             
             updatedQueryMetric.setNumUpdates(nextUpdateNumber);
             
-            synchronized (ShardTableQueryMetricHandler.class) {
-                newCachedQueryMetric.setNumUpdates(nextUpdateNumber);
-                metricsCache.put(updatedQueryMetric.getQueryId(), newCachedQueryMetric);
-            }
+            // synchronized (ShardTableQueryMetricHandler.class) {
+            newCachedQueryMetric.setNumUpdates(nextUpdateNumber);
+            metricsCache.put(updatedQueryMetric.getQueryId(), newCachedQueryMetric);
+            // }
             
             // write new entry
             writeMetrics(updatedQueryMetric, Collections.singletonList(updatedQueryMetric), lastUpdated, false);
@@ -383,8 +374,13 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
             enableLogs(true);
         }
     }
-
+    
     public QueryMetric getQueryMetric(final String queryId) {
+        List<QueryMetric> queryMetrics = getQueryMetrics(queryId);
+        return queryMetrics.isEmpty() ? null : queryMetrics.get(0);
+    }
+    
+    private List<QueryMetric> getQueryMetrics(final String queryId) {
         Date end = new Date();
         Date begin = DateUtils.setYears(end, 2000);
         QueryImpl query = new QueryImpl();
@@ -395,17 +391,16 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
         query.setQueryName(QUERY_METRICS_LOGIC_NAME);
         query.setColumnVisibility(queryMetricHandlerProperties.getVisibilityString());
         query.setQueryAuthorizations(connectorAuthorizations);
-//        if (updatedQueryMetric.getUserDN() != null) {
-//            query.setUserDN(updatedQueryMetric.getUserDN());
-//        }
+        // if (updatedQueryMetric.getUserDN() != null) {
+        // query.setUserDN(updatedQueryMetric.getUserDN());
+        // }
         query.setExpirationDate(DateUtils.addDays(new Date(), 1));
         query.setPagesize(1000);
         query.setId(UUID.randomUUID());
         query.setParameters(ImmutableMap.of(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true"));
-        List<QueryMetric> queryMetrics = getQueryMetrics(null, query);
-        return queryMetrics.isEmpty() ? null : queryMetrics.get(0);
+        return getQueryMetrics(null, query);
     }
-
+    
     private List<QueryMetric> getQueryMetrics(BaseResponse response, Query query/* , DatawavePrincipal datawavePrincipal */) {
         List<QueryMetric> queryMetrics = new ArrayList<>();
         RunningQuery runningQuery;
@@ -786,7 +781,7 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
     
     @SuppressWarnings("unchecked")
     private Map<String,TableConfigHelper> getTableConfigs(Logger log, Configuration conf, String[] tableNames) {
-        Map<String,TableConfigHelper> helperMap = new HashMap<>(tableNames.length);
+        Map<String,TableConfigHelper> helperMap = new HashMap<>();
         
         for (String table : tableNames) {
             String prop = table + TableConfigHelper.TABLE_CONFIG_CLASS_SUFFIX;
@@ -796,11 +791,11 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
             if (className != null) {
                 try {
                     Class<? extends TableConfigHelper> tableHelperClass = (Class<? extends TableConfigHelper>) Class.forName(className.trim());
-                    tableHelper = tableHelperClass.newInstance();
+                    tableHelper = tableHelperClass.getDeclaredConstructor().newInstance();
                     
                     if (tableHelper != null)
                         tableHelper.setup(table, conf, log);
-                } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
+                } catch (Exception e) {
                     throw new IllegalArgumentException(e);
                 }
             }

@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 @ConfigurationProperties(prefix = "hazelcast.server")
 public class HazelcastServerProperties {
-
+    
     /**
      * The initial delay in seconds to wait before attempting to merge split-brain clusters. If multiple nodes are started simultaneously, it is possible they
      * will all end up creating their own clusters since each one will create its cluster before any of the others have registered with the discovery service.
@@ -25,69 +25,69 @@ public class HazelcastServerProperties {
      * A Hazelcast XML configuration. Ideally this should only define cache configurations.
      */
     private String xmlConfig;
-
+    
     @NestedConfigurationProperty
     private KubernetesProperties k8s = new KubernetesProperties();
-
+    
     public int getInitialMergeDelaySeconds() {
         return initialMergeDelaySeconds;
     }
-
+    
     public void setInitialMergeDelaySeconds(int initialMergeDelaySeconds) {
         this.initialMergeDelaySeconds = initialMergeDelaySeconds;
     }
-
+    
     public boolean isSkipDefaultConfiguration() {
         return skipDefaultConfiguration;
     }
-
+    
     public void setSkipDefaultConfiguration(boolean skipDefaultConfiguration) {
         this.skipDefaultConfiguration = skipDefaultConfiguration;
     }
-
+    
     public boolean isSkipDiscoveryConfiguration() {
         return skipDiscoveryConfiguration;
     }
-
+    
     public void setSkipDiscoveryConfiguration(boolean skipDiscoveryConfiguration) {
         this.skipDiscoveryConfiguration = skipDiscoveryConfiguration;
     }
-
+    
     public String getXmlConfig() {
         return xmlConfig;
     }
-
+    
     public void setXmlConfig(String xmlConfig) {
         this.xmlConfig = xmlConfig;
     }
-
+    
     public KubernetesProperties getK8s() {
         return k8s;
     }
-
+    
     public void setK8s(KubernetesProperties k8s) {
         this.k8s = k8s;
     }
-
+    
     public static class KubernetesProperties {
         private String serviceDnsName = "cache.datawave";
         private int serviceDnsTimeout = 10;
-
+        
         public String getServiceDnsName() {
             return serviceDnsName;
         }
-
+        
         public void setServiceDnsName(String serviceDnsName) {
             this.serviceDnsName = serviceDnsName;
         }
-
+        
         public int getServiceDnsTimeout() {
             return serviceDnsTimeout;
         }
-
+        
         public void setServiceDnsTimeout(int serviceDnsTimeout) {
             this.serviceDnsTimeout = serviceDnsTimeout;
         }
     }
-
+    
 }

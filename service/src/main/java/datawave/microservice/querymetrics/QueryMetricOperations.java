@@ -16,21 +16,21 @@ import java.util.Collection;
 @RestController
 @RequestMapping(path = "/v1")
 public class QueryMetricOperations {
-
+    
     private ShardTableQueryMetricHandler handler;
     private Cache imcomingQueryMetrics;
-
+    
     @Autowired
     public QueryMetricOperations(CacheManager cacheManager, ShardTableQueryMetricHandler handler) {
         this.handler = handler;
         this.imcomingQueryMetrics = cacheManager.getCache("incomingQueryMetrics");
     }
-
+    
     @RequestMapping(path = "/update", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public String update(@RequestBody Collection<QueryMetric> queryMetrics) {
         System.out.println(queryMetrics.toString());
-
+        
         queryMetrics.forEach(m -> {
             try {
                 this.imcomingQueryMetrics.put(m.getQueryId(), m);

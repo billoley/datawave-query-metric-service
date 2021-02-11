@@ -23,13 +23,13 @@ import static datawave.marking.MarkingFunctions.Factory.log;
 @EnableConfigurationProperties({QueryMetricTimelyProperties.class, QueryMetricHandlerProperties.class})
 
 public class QueryMetricConfiguration {
-
+    
     @Bean
     @ConditionalOnMissingBean
     public MarkingFunctions markingFunctions() {
         return new MarkingFunctions.Default();
     }
-
+    
     @Bean
     public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();
@@ -38,7 +38,7 @@ public class QueryMetricConfiguration {
         mapper.registerModule(new GuavaModule());
         return mapper;
     }
-
+    
     @Bean
     public MetricStorageCache metricStorageCache(CacheInspector cacheInspector, CacheManager cacheManager) {
         log.debug("Using " + cacheManager.getClass() + " for caching");
