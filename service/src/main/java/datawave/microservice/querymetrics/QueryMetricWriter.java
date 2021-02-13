@@ -248,33 +248,33 @@ public class QueryMetricWriter {
         }
     }
     
-    private List<QueryMetricHolder> writeMetrics(QueryMetricHandler queryMetricHandler, List<QueryMetricHolder> metricQueue) throws Exception {
-        
-        List<QueryMetricHolder> failedMetrics = new ArrayList<>();
-        
-        if (!metricQueue.isEmpty()) {
-            log.debug("writing " + metricQueue.size() + " query metric updates");
-            for (QueryMetricHolder queryMetricHolder : metricQueue) {
-                try {
-                    BaseQueryMetric queryMetric = queryMetricHolder.getQueryMetric();
-                    handleLegacyEvents(queryMetric);
-                    // DatawavePrincipal datawavePrincipal = queryMetricHolder.getPrincipal();
-                    queryMetricHandler.updateMetric(queryMetric);
-                    sendMetricsToTimely(queryMetric);
-                } catch (Throwable t) {
-                    log.error("query metric updates failed: " + t.getMessage(), t);
-                    failedMetrics.add(queryMetricHolder);
-                }
-            }
-            try {
-                queryMetricHandler.flush();
-            } catch (Throwable t) {
-                failedMetrics.addAll(metricQueue);
-            }
-            log.debug("wrote " + (metricQueue.size() - failedMetrics.size()) + " query metric updates");
-        }
-        return failedMetrics;
-    }
+    // private List<QueryMetricHolder> writeMetrics(QueryMetricHandler queryMetricHandler, List<QueryMetricHolder> metricQueue) throws Exception {
+    //
+    // List<QueryMetricHolder> failedMetrics = new ArrayList<>();
+    //
+    // if (!metricQueue.isEmpty()) {
+    // log.debug("writing " + metricQueue.size() + " query metric updates");
+    // for (QueryMetricHolder queryMetricHolder : metricQueue) {
+    // try {
+    // BaseQueryMetric queryMetric = queryMetricHolder.getQueryMetric();
+    // handleLegacyEvents(queryMetric);
+    // // DatawavePrincipal datawavePrincipal = queryMetricHolder.getPrincipal();
+    // queryMetricHandler.updateMetric(queryMetric);
+    // sendMetricsToTimely(queryMetric);
+    // } catch (Throwable t) {
+    // log.error("query metric updates failed: " + t.getMessage(), t);
+    // failedMetrics.add(queryMetricHolder);
+    // }
+    // }
+    // try {
+    // queryMetricHandler.flush();
+    // } catch (Throwable t) {
+    // failedMetrics.addAll(metricQueue);
+    // }
+    // log.debug("wrote " + (metricQueue.size() - failedMetrics.size()) + " query metric updates");
+    // }
+    // return failedMetrics;
+    // }
     
     private void handleLegacyEvents(BaseQueryMetric queryMetric) {
         long lastUpdated;

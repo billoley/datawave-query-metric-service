@@ -65,8 +65,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import datawave.webservice.query.QueryImpl.Parameter;
@@ -78,7 +76,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -110,8 +107,6 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
     private static final String NULL_BYTE = "\0";
     public static final String CONTEXT_WRITER_MAX_CACHE_SIZE = "context.writer.max.cache.size";
     
-    private Cache metricsCache;
-    
     private final Configuration conf = new Configuration();
     private final StatusReporter reporter = new MockStatusReporter();
     private final AtomicBoolean tablesChecked = new AtomicBoolean(false);
@@ -120,12 +115,10 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
     private UIDBuilder<UID> uidBuilder = UID.builder();
     
     @Autowired
-    public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("warehouse") Connector connector,
-                    CacheManager cacheManager) {
+    public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("warehouse") Connector connector) {
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.connector = connector;
         queryMetricHandlerProperties.getProperties().entrySet().forEach(e -> conf.set(e.getKey(), e.getValue()));
-        this.metricsCache = cacheManager.getCache("lastWrittenQueryMetrics");
     }
     
     @PostConstruct
@@ -161,7 +154,7 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
         }
     }
     
-    private void writeMetrics(QueryMetric updatedQueryMetric, List<QueryMetric> storedQueryMetrics, Date lastUpdated, boolean delete) throws Exception {
+    public void writeMetric(QueryMetric updatedQueryMetric, List<QueryMetric> storedQueryMetrics, Date lastUpdated, boolean delete) throws Exception {
         LiveContextWriter contextWriter = null;
         
         MapContext<Text,RawRecordContainer,Text,Mutation> context = null;
@@ -295,81 +288,58 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
     
     @SuppressWarnings("unchecked")
     @Override
-    public void updateMetric(QueryMetric updatedQueryMetric) throws Exception {
-        Date lastUpdated = updatedQueryMetric.getLastUpdated();
+    public QueryMetric combineMetrics(QueryMetric updatedQueryMetric, QueryMetric cachedQueryMetric) throws Exception {
         
         try {
             enableLogs(false);
-            // String sid = updatedQueryMetric.getUser();
-            // if (sid == null) {
-            // sid = datawavePrincipal.getShortName();
-            // }
-            
-            // find and remove previous entries
-            // BaseQueryMetricListResponse response = new QueryMetricListResponse();
-            // Date end = new Date();
-            // Date begin = DateUtils.setYears(end, 2000);
-            
-            // user's DatawavePrincipal must have the Administrator role to use the Metrics query logic
-            QueryMetric cachedQueryMetric;
-            QueryMetric newCachedQueryMetric;
-            synchronized (ShardTableQueryMetricHandler.class) {
-                cachedQueryMetric = (QueryMetric) metricsCache.get(updatedQueryMetric.getQueryId());
-                // duplicate updatedQueryMetric because we're counting on the cache to be a snapshot of the QueryMetric
-                // so that we can retrieve it next update call to create the delete Mutations for the values written to Accumulo
+            if (cachedQueryMetric != null) {
                 Map<Long,PageMetric> storedPageMetricMap = new TreeMap<>();
-                if (cachedQueryMetric != null) {
-                    List<PageMetric> cachedPageMetrics = cachedQueryMetric.getPageTimes();
-                    if (cachedPageMetrics != null) {
-                        for (PageMetric p : cachedPageMetrics) {
-                            storedPageMetricMap.put(p.getPageNumber(), p);
-                        }
-                    }
+                if (cachedQueryMetric.getPageTimes() != null) {
+                    cachedQueryMetric.getPageTimes().forEach(pm -> storedPageMetricMap.put(pm.getPageNumber(), pm));
                 }
                 // combine all of the page metrics from the cached metric and the updated metric
-                for (PageMetric p : updatedQueryMetric.getPageTimes()) {
-                    storedPageMetricMap.put(p.getPageNumber(), p);
+                if (updatedQueryMetric.getPageTimes() != null) {
+                    updatedQueryMetric.getPageTimes().forEach(pm -> storedPageMetricMap.put(pm.getPageNumber(), pm));
                 }
-                newCachedQueryMetric = (QueryMetric) updatedQueryMetric.duplicate();
-                ArrayList<PageMetric> newPageMetrics = new ArrayList<>();
-                newPageMetrics.addAll(storedPageMetricMap.values());
-                newCachedQueryMetric.setPageTimes(newPageMetrics);
-                metricsCache.put(updatedQueryMetric.getQueryId(), newCachedQueryMetric);
+                ArrayList<PageMetric> newPageMetrics = new ArrayList<>(storedPageMetricMap.values());
+                updatedQueryMetric.setNumUpdates(cachedQueryMetric.getNumUpdates() + 1);
+                updatedQueryMetric.setPageTimes(newPageMetrics);
             }
+            return updatedQueryMetric;
             
-            List<QueryMetric> queryMetrics = new ArrayList<>();
+            // List<QueryMetric> queryMetrics = new ArrayList<>();
             
-            if (cachedQueryMetric == null) {
-                // if numPages > 0 or Lifecycle > DEFINED, then we should have a metric cached already
-                // if we don't, then query for the current stored metric
-                if (updatedQueryMetric.getNumPages() > 0 || updatedQueryMetric.getLifecycle().compareTo(Lifecycle.DEFINED) > 0) {
-                    queryMetrics = getQueryMetrics(updatedQueryMetric.getQueryId());
-                }
-            } else {
-                queryMetrics = Collections.singletonList(cachedQueryMetric);
-            }
-            
-            if (!queryMetrics.isEmpty()) {
-                writeMetrics(updatedQueryMetric, queryMetrics, lastUpdated, true);
-            }
-            
-            long nextUpdateNumber = 0;
-            
-            for (BaseQueryMetric m : queryMetrics) {
-                if ((m.getNumUpdates() + 1) > nextUpdateNumber) {
-                    nextUpdateNumber = m.getNumUpdates() + 1;
-                }
-            }
-            
-            updatedQueryMetric.setNumUpdates(nextUpdateNumber);
-            
-            // synchronized (ShardTableQueryMetricHandler.class) {
-            newCachedQueryMetric.setNumUpdates(nextUpdateNumber);
-            metricsCache.put(updatedQueryMetric.getQueryId(), newCachedQueryMetric);
+            // if (cachedQueryMetric == null) {
+            // // if numPages > 0 or Lifecycle > DEFINED, then we should have a metric cached already
+            // // if we don't, then query for the current stored metric
+            // if (updatedQueryMetric.getNumPages() > 0 || updatedQueryMetric.getLifecycle().compareTo(Lifecycle.DEFINED) > 0) {
+            // queryMetrics = getQueryMetrics(updatedQueryMetric.getQueryId());
+            // }
+            // } else {
+            // queryMetrics = Collections.singletonList(cachedQueryMetric);
             // }
             
-            // write new entry
-            writeMetrics(updatedQueryMetric, Collections.singletonList(updatedQueryMetric), lastUpdated, false);
+            // if (!queryMetrics.isEmpty()) {
+            // writeMetrics(updatedQueryMetric, queryMetrics, lastUpdated, true);
+            // }
+            //
+            // long nextUpdateNumber = 0;
+            //
+            // for (BaseQueryMetric m : queryMetrics) {
+            // if ((m.getNumUpdates() + 1) > nextUpdateNumber) {
+            // nextUpdateNumber = m.getNumUpdates() + 1;
+            // }
+            // }
+            //
+            // updatedQueryMetric.setNumUpdates(nextUpdateNumber);
+            //
+            // // synchronized (ShardTableQueryMetricHandler.class) {
+            // newCachedQueryMetric.setNumUpdates(nextUpdateNumber);
+            // metricsCache.put(updatedQueryMetric.getQueryId(), newCachedQueryMetric);
+            // // }
+            //
+            // // write new entry
+            // writeMetrics(updatedQueryMetric, Collections.singletonList(updatedQueryMetric), lastUpdated, false);
         } finally {
             enableLogs(true);
         }

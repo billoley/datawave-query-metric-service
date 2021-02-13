@@ -3,21 +3,21 @@ package datawave.microservice.querymetrics.config;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.DiscoveryStrategyConfig;
 import com.hazelcast.config.JoinConfig;
-import com.hazelcast.config.MapConfig;
-import com.hazelcast.config.MapStoreConfig;
 import com.hazelcast.config.XmlConfigBuilder;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.kubernetes.HazelcastKubernetesDiscoveryStrategyFactory;
 import com.hazelcast.kubernetes.KubernetesProperties;
 import com.hazelcast.spi.discovery.integration.DiscoveryServiceProvider;
-import datawave.microservice.querymetrics.peristence.AccumuloMapLoader;
-import datawave.microservice.querymetrics.peristence.AccumuloMapStore;
+import com.hazelcast.spring.cache.HazelcastCacheManager;
+import datawave.microservice.querymetrics.peristence.AccumuloCacheLoader;
+import datawave.microservice.querymetrics.peristence.AccumuloCacheWriter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cache.Cache;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -35,16 +35,25 @@ public class HazelcastConfiguration {
     private String clusterName;
     
     @Bean
-    HazelcastInstance hazelcastInstance(Config config) {
-        return Hazelcast.newHazelcastInstance(config);
+    HazelcastInstance hazelcastInstance(Config config, AccumuloCacheWriter cacheWriter) {
+        HazelcastInstance instance = Hazelcast.newHazelcastInstance(config);
+        try {
+            HazelcastCacheManager cacheManager = new HazelcastCacheManager(instance);
+            Cache lastWrittenQueryMetricsCache = cacheManager.getCache("lastWrittenQueryMetrics");
+            cacheWriter.setLastWrittenQueryMetricCache(lastWrittenQueryMetricsCache);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return instance;
     }
     
     @Bean
     @Profile("consul")
     public Config consulConfig(HazelcastServerProperties serverProperties, DiscoveryServiceProvider discoveryServiceProvider,
-                    @Qualifier("store") AccumuloMapStore mapStore, @Qualifier("loader") AccumuloMapLoader mapLoader) {
+                    AccumuloCacheWriter cacheWriter,
+                    AccumuloCacheLoader cacheLoader) {
         
-        Config config = generateDefaultConfig(serverProperties, mapStore, mapLoader);
+        Config config = generateDefaultConfig(serverProperties, cacheWriter, cacheLoader);
         
         // Set up some default configuration. Do this after we read the XML configuration (which is really intended just to be cache configurations).
         if (!serverProperties.isSkipDiscoveryConfiguration()) {
@@ -59,10 +68,10 @@ public class HazelcastConfiguration {
     
     @Bean
     @Profile("k8s")
-    public Config k8sConfig(HazelcastServerProperties serverProperties, @Qualifier("store") AccumuloMapStore mapStore,
-                    @Qualifier("loader") AccumuloMapLoader mapLoader) {
+    public Config k8sConfig(HazelcastServerProperties serverProperties, AccumuloCacheWriter cacheWriter,
+                    AccumuloCacheLoader cacheLoader) {
         
-        Config config = generateDefaultConfig(serverProperties, mapStore, mapLoader);
+        Config config = generateDefaultConfig(serverProperties, cacheWriter, cacheLoader);
         
         if (!serverProperties.isSkipDiscoveryConfiguration()) {
             // Enable Kubernetes discovery
@@ -82,12 +91,12 @@ public class HazelcastConfiguration {
     
     @Bean
     @ConditionalOnMissingBean(Config.class)
-    public Config defaultConfig(HazelcastServerProperties serverProperties, @Qualifier("store") AccumuloMapStore mapStore,
-                    @Qualifier("loader") AccumuloMapLoader mapLoader) {
-        return generateDefaultConfig(serverProperties, mapStore, mapLoader);
+    public Config defaultConfig(HazelcastServerProperties serverProperties, AccumuloCacheWriter cacheWriter,
+                    AccumuloCacheLoader cacheLoader) {
+        return generateDefaultConfig(serverProperties, cacheWriter, cacheLoader);
     }
     
-    private Config generateDefaultConfig(HazelcastServerProperties serverProperties, AccumuloMapStore mapStore, AccumuloMapLoader mapLoader) {
+    private Config generateDefaultConfig(HazelcastServerProperties serverProperties, AccumuloCacheWriter cacheWriter, AccumuloCacheLoader mapLoader) {
         Config config;
         
         if (serverProperties.getXmlConfig() == null) {
@@ -106,17 +115,18 @@ public class HazelcastConfiguration {
             config.setProperty("hazelcast.merge.first.run.delay.seconds", String.valueOf(serverProperties.getInitialMergeDelaySeconds()));
             config.getNetworkConfig().setReuseAddress(true); // Reuse addresses (so we can try to keep our port on a restart)
         }
-        
-        config.getMapConfigs().entrySet().forEach(e -> {
-            switch (e.getKey()) {
-                case "incomingQueryMetrics":
-                    e.getValue().getMapStoreConfig().setImplementation(mapStore);
-                    break;
-                case "lastWrittenQueryMetrics":
-                    e.getValue().getMapStoreConfig().setImplementation(mapLoader);
-                    break;
-            }
-        });
+
+//        config.getMapConfigs().entrySet().forEach(e -> {
+//        config.getCacheConfigs().entrySet().forEach(e -> {
+//            switch (e.getKey()) {
+//                case "incomingQueryMetrics":
+//                    e.getValue().setCacheWriter(cacheWriter);
+//                    break;
+//                case "lastWrittenQueryMetrics":
+//                    e.getValue().setCacheLoader(mapLoader);
+//                    break;
+//            }
+//        });
         return config;
     }
 }

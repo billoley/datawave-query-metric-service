@@ -1,7 +1,10 @@
 package datawave.microservice.querymetrics;
 
+import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.microservice.querymetrics.handler.ShardTableQueryMetricHandler;
 import datawave.webservice.query.metric.QueryMetric;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
@@ -12,18 +15,25 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Collection;
+import java.util.Collections;
 
 @RestController
 @RequestMapping(path = "/v1")
 public class QueryMetricOperations {
     
+    private Logger log = LoggerFactory.getLogger(getClass());
+    
     private ShardTableQueryMetricHandler handler;
-    private Cache imcomingQueryMetrics;
+    private Cache incomingQueryMetrics;
+    private Cache lastWrittenQueryMetricCache;
+    private boolean isHazelCast = false;
     
     @Autowired
     public QueryMetricOperations(CacheManager cacheManager, ShardTableQueryMetricHandler handler) {
         this.handler = handler;
-        this.imcomingQueryMetrics = cacheManager.getCache("incomingQueryMetrics");
+        isHazelCast = cacheManager instanceof HazelcastCacheManager;
+        this.incomingQueryMetrics = cacheManager.getCache("incomingQueryMetrics");
+        this.lastWrittenQueryMetricCache = cacheManager.getCache("lastWrittenQueryMetrics");
     }
     
     @RequestMapping(path = "/update", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
@@ -33,10 +43,19 @@ public class QueryMetricOperations {
         
         queryMetrics.forEach(m -> {
             try {
-                this.imcomingQueryMetrics.put(m.getQueryId(), m);
-                handler.updateMetric(m);
+                if (isHazelCast) {
+                    this.incomingQueryMetrics.put(m.getQueryId(), m);
+                } else {
+                    QueryMetric lastQueryMetric = (QueryMetric) lastWrittenQueryMetricCache.get(m.getQueryId());
+                    if (lastQueryMetric != null) {
+                        m = handler.combineMetrics(m, lastQueryMetric);
+                        handler.writeMetric(m, Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
+                    }
+                    handler.writeMetric(m, Collections.singletonList(m), m.getLastUpdated(), false);
+                    this.lastWrittenQueryMetricCache.put(m.getQueryId(), m);
+                }
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error(e.getMessage(), e);
             }
         });
         return queryMetrics.toString();

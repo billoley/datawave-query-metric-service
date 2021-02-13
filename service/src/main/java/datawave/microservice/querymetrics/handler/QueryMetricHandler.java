@@ -1,14 +1,13 @@
 package datawave.microservice.querymetrics.handler;
 
 import datawave.webservice.query.metric.BaseQueryMetric;
-import datawave.security.authorization.DatawavePrincipal;
+import datawave.webservice.query.metric.QueryMetric;
 
-import java.util.Date;
 import java.util.Map;
 
 public interface QueryMetricHandler<T extends BaseQueryMetric> {
     
-    void updateMetric(T metric) throws Exception;
+    QueryMetric combineMetrics(T metric, QueryMetric cachedQueryMetric) throws Exception;
     
     Map<String,String> getEventFields(BaseQueryMetric queryMetric);
     

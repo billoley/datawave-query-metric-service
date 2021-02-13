@@ -48,24 +48,24 @@ import java.util.UUID;
 
 @Component
 public class QueryMetricReaderWriter {
-
+    
     private static final Logger log = ThreadConfigurableLogger.getLogger(QueryMetricReaderWriter.class);
-
+    
     private static final String QUERY_METRICS_LOGIC_NAME = "QueryMetricsQuery";
     protected static final String DEFAULT_SECURITY_MARKING = "PUBLIC";
     private String connectorAuthorizations = null;
     private QueryMetricFactory metricFactory = new QueryMetricFactoryImpl();
-
+    
     protected Connector connector;
     protected QueryMetricHandlerProperties queryMetricHandlerProperties;
-
+    
     @Autowired
     public QueryMetricReaderWriter(QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("warehouse") Connector connector,
                     CacheManager cacheManager) {
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.connector = connector;
     }
-
+    
     private List<QueryMetric> getQueryMetrics(final String queryId) {
         Date end = new Date();
         Date begin = DateUtils.setYears(end, 2000);
@@ -86,52 +86,52 @@ public class QueryMetricReaderWriter {
         query.setParameters(ImmutableMap.of(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true"));
         return getQueryMetrics(null, query);
     }
-
+    
     private List<QueryMetric> getQueryMetrics(BaseResponse response, Query query/* , DatawavePrincipal datawavePrincipal */) {
         List<QueryMetric> queryMetrics = new ArrayList<>();
         RunningQuery runningQuery;
         Connector connector = null;
-
+        
         try {
             QueryLogic<?> queryLogic = new QueryMetricQueryLogic();
             // FIXME
             DatawavePrincipal datawavePrincipal = new DatawavePrincipal();
-            runningQuery = new RunningQuery(null, connector, AccumuloConnectionFactory.Priority.ADMIN, queryLogic, query, query.getQueryAuthorizations(), datawavePrincipal,
-                            metricFactory);
-
+            runningQuery = new RunningQuery(null, connector, AccumuloConnectionFactory.Priority.ADMIN, queryLogic, query, query.getQueryAuthorizations(),
+                            datawavePrincipal, metricFactory);
+            
             boolean done = false;
             List<Object> objectList = new ArrayList<>();
-
+            
             while (!done) {
                 ResultsPage resultsPage = runningQuery.next();
-
+                
                 if (!resultsPage.getResults().isEmpty()) {
                     objectList.addAll(resultsPage.getResults());
                 } else {
                     done = true;
                 }
             }
-
+            
             BaseQueryResponse queryResponse = queryLogic.getTransformer(query).createResponse(new ResultsPage(objectList));
             List<QueryExceptionType> exceptions = queryResponse.getExceptions();
-
+            
             if (queryResponse.getExceptions() != null && !queryResponse.getExceptions().isEmpty()) {
                 if (response != null) {
                     response.setExceptions(new LinkedList<>(exceptions));
                     response.setHasResults(false);
                 }
             }
-
+            
             if (!(queryResponse instanceof EventQueryResponseBase)) {
                 if (response != null) {
                     response.addException(new QueryException("incompatible response")); // TODO: Should this be an IllegalStateException?
                     response.setHasResults(false);
                 }
             }
-
+            
             EventQueryResponseBase eventQueryResponse = (EventQueryResponseBase) queryResponse;
             List<EventBase> eventList = eventQueryResponse.getEvents();
-
+            
             for (EventBase<?,?> event : eventList) {
                 QueryMetric metric = toMetric(event);
                 queryMetrics.add(metric);
@@ -158,24 +158,24 @@ public class QueryMetricReaderWriter {
             // }
             // }
         }
-
+        
         return queryMetrics;
     }
-
+    
     public QueryMetric toMetric(datawave.webservice.query.result.event.EventBase event) {
         SimpleDateFormat sdf_date_time1 = new SimpleDateFormat("yyyyMMdd HHmmss");
         SimpleDateFormat sdf_date_time2 = new SimpleDateFormat("yyyyMMdd HHmmss");
-
+        
         try {
             QueryMetric m = new QueryMetric();
             List<FieldBase> field = event.getFields();
-
+            
             TreeMap<Long,BaseQueryMetric.PageMetric> pageMetrics = Maps.newTreeMap();
-
+            
             for (FieldBase f : field) {
                 String fieldName = f.getName();
                 String fieldValue = f.getValueString();
-
+                
                 if (fieldName.equals("USER")) {
                     m.setUser(fieldValue);
                 } else if (fieldName.equals("USER_DN")) {
@@ -235,22 +235,23 @@ public class QueryMetricReaderWriter {
                         log.error("Could not parse field name to extract repetition count: " + fieldName);
                     } else {
                         Long repetition = Long.parseLong(fieldName.substring(index + 1));
-
+                        
                         String[] parts = StringUtils.split(fieldValue, "/");
                         BaseQueryMetric.PageMetric pageMetric = null;
                         if (parts.length == 8) {
-                            pageMetric = new BaseQueryMetric.PageMetric(Long.parseLong(parts[0]), Long.parseLong(parts[1]), Long.parseLong(parts[2]), Long.parseLong(parts[3]),
-                                            Long.parseLong(parts[4]), Long.parseLong(parts[5]), Long.parseLong(parts[6]), Long.parseLong(parts[7]));
+                            pageMetric = new BaseQueryMetric.PageMetric(Long.parseLong(parts[0]), Long.parseLong(parts[1]), Long.parseLong(parts[2]),
+                                            Long.parseLong(parts[3]), Long.parseLong(parts[4]), Long.parseLong(parts[5]), Long.parseLong(parts[6]),
+                                            Long.parseLong(parts[7]));
                         } else if (parts.length == 7) {
-                            pageMetric = new BaseQueryMetric.PageMetric(Long.parseLong(parts[0]), Long.parseLong(parts[1]), Long.parseLong(parts[2]), Long.parseLong(parts[3]),
-                                            Long.parseLong(parts[4]), Long.parseLong(parts[5]), Long.parseLong(parts[6]));
+                            pageMetric = new BaseQueryMetric.PageMetric(Long.parseLong(parts[0]), Long.parseLong(parts[1]), Long.parseLong(parts[2]),
+                                            Long.parseLong(parts[3]), Long.parseLong(parts[4]), Long.parseLong(parts[5]), Long.parseLong(parts[6]));
                         } else if (parts.length == 5) {
-                            pageMetric = new BaseQueryMetric.PageMetric(Long.parseLong(parts[0]), Long.parseLong(parts[1]), Long.parseLong(parts[2]), Long.parseLong(parts[3]),
-                                            Long.parseLong(parts[4]), 0l, 0l);
+                            pageMetric = new BaseQueryMetric.PageMetric(Long.parseLong(parts[0]), Long.parseLong(parts[1]), Long.parseLong(parts[2]),
+                                            Long.parseLong(parts[3]), Long.parseLong(parts[4]), 0l, 0l);
                         } else if (parts.length == 2) {
                             pageMetric = new BaseQueryMetric.PageMetric(Long.parseLong(parts[0]), Long.parseLong(parts[1]), 0l, 0l);
                         }
-
+                        
                         if (pageMetric != null)
                             pageMetrics.put(repetition, pageMetric);
                     }
@@ -289,43 +290,43 @@ public class QueryMetricReaderWriter {
                         try {
                             Set<QueryImpl.Parameter> parameters = QueryUtil.parseParameters(fieldValue);
                             m.setParameters(parameters);
-
+                            
                         } catch (Exception e) {
                             log.debug(e.getMessage());
                         }
                     }
                 }
-
+                
                 else if (fieldName.equals("SOURCE_COUNT")) {
                     m.setSourceCount(Long.parseLong(fieldValue));
                 }
-
+                
                 else if (fieldName.equals("NEXT_COUNT")) {
                     m.setNextCount(Long.parseLong(fieldValue));
                 }
-
+                
                 else if (fieldName.equals("SEEK_COUNT")) {
                     m.setSeekCount(Long.parseLong(fieldValue));
                 }
-
+                
                 else if (fieldName.equals("YIELD_COUNT")) {
                     m.setYieldCount(Long.parseLong(fieldValue));
                 }
-
+                
                 else if (fieldName.equals("DOC_RANGES")) {
                     m.setDocRanges(Long.parseLong(fieldValue));
                 }
-
+                
                 else if (fieldName.equals("FI_RANGES")) {
                     m.setFiRanges(Long.parseLong(fieldValue));
                 } else {
                     log.error("encountered unanticipated field name: " + fieldName);
                 }
             }
-
+            
             for (final Map.Entry<Long,BaseQueryMetric.PageMetric> entry : pageMetrics.entrySet())
                 m.addPageMetric(entry.getValue());
-
+            
             return m;
         } catch (RuntimeException e) {
             return null;
