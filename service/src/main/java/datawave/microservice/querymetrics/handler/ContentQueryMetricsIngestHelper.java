@@ -112,7 +112,7 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             
             String type = updatedQueryMetric.getQueryType();
             // this is time consuming - we only need to parse the query and write the selectors once
-            if (type.equalsIgnoreCase("RunningQuery") && updatedQueryMetric.getNumUpdates() == 0) {
+            if (type != null && type.equalsIgnoreCase("RunningQuery") && updatedQueryMetric.getNumUpdates() == 0) {
                 
                 String query = updatedQueryMetric.getQuery();
                 

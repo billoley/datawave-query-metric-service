@@ -15,11 +15,11 @@ import java.util.Collection;
 import java.util.Collections;
 
 @Component
-public class AccumuloCacheWriter implements CacheWriter<String,QueryMetric>, Factory<CacheWriter<String, QueryMetric>> {
+public class AccumuloCacheWriter implements CacheWriter<String,QueryMetric>, Factory<CacheWriter<String,QueryMetric>> {
     
     private Logger log = LoggerFactory.getLogger(getClass());
     private static AccumuloCacheWriter instance;
-
+    
     private ShardTableQueryMetricHandler handler;
     private Cache lastWrittenQueryMetricCache;
     
@@ -32,8 +32,9 @@ public class AccumuloCacheWriter implements CacheWriter<String,QueryMetric>, Fac
     public void setLastWrittenQueryMetricCache(Cache lastWrittenQueryMetricCache) {
         this.lastWrittenQueryMetricCache = lastWrittenQueryMetricCache;
     }
-
-    @Override public void write(javax.cache.Cache.Entry<? extends String,? extends QueryMetric> entry) throws CacheWriterException {
+    
+    @Override
+    public void write(javax.cache.Cache.Entry<? extends String,? extends QueryMetric> entry) throws CacheWriterException {
         QueryMetric updatedMetric = entry.getValue();
         String queryId = entry.getKey();
         try {
@@ -49,8 +50,9 @@ public class AccumuloCacheWriter implements CacheWriter<String,QueryMetric>, Fac
             this.lastWrittenQueryMetricCache.put(queryId, updatedMetric);
         }
     }
-
-    @Override public void writeAll(Collection<javax.cache.Cache.Entry<? extends String,? extends QueryMetric>> collection) throws CacheWriterException {
+    
+    @Override
+    public void writeAll(Collection<javax.cache.Cache.Entry<? extends String,? extends QueryMetric>> collection) throws CacheWriterException {
         collection.forEach(entry -> {
             try {
                 this.write(entry);
@@ -59,16 +61,19 @@ public class AccumuloCacheWriter implements CacheWriter<String,QueryMetric>, Fac
             }
         });
     }
-
-    @Override public void delete(Object o) throws CacheWriterException {
+    
+    @Override
+    public void delete(Object o) throws CacheWriterException {
         // not implemented
     }
-
-    @Override public void deleteAll(Collection<?> collection) throws CacheWriterException {
+    
+    @Override
+    public void deleteAll(Collection<?> collection) throws CacheWriterException {
         // not implemented
     }
-
-    @Override public CacheWriter<String,QueryMetric> create() {
+    
+    @Override
+    public CacheWriter<String,QueryMetric> create() {
         return AccumuloCacheWriter.instance;
     }
 }

@@ -45,8 +45,8 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     private long mutCount = 0;
     private long valCount = 0;
     
-    private Connector conn;
-    private AccumuloConnectionFactory connFactory;
+    private Connector connector;
+//    private AccumuloConnectionFactory connFactory;
     private static final String PREFIX = AccumuloRecordWriter.class.getSimpleName();
     private static final String OUTPUT_INFO_HAS_BEEN_SET = PREFIX + ".configured";
     private static final String INSTANCE_HAS_BEEN_SET = PREFIX + ".instanceConfigured";
@@ -78,6 +78,7 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
         }
         this.simulate = getSimulationMode(conf);
         this.createTables = canCreateTables(conf);
+        this.connector = connector;
         
         if (simulate) {
             log.info("Simulating output only. No writes to tables will occur");
@@ -97,12 +98,12 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
                 // Map<String,String> trackingMap = connectionFactory.getTrackingMap(Thread.currentThread().getStackTrace());
                 // this.conn = connectionFactory.getConnection(Priority.ADMIN, trackingMap);
                 // }
-                mtbw = conn.createMultiTableBatchWriter(getMaxMutationBufferSize(conf), getMaxLatency(conf), getMaxWriteThreads(conf));
+                mtbw = this.connector.createMultiTableBatchWriter(getMaxMutationBufferSize(conf), getMaxLatency(conf), getMaxWriteThreads(conf));
                 BatchWriterConfig bwConfig = new BatchWriterConfig();
                 bwConfig.setMaxMemory(getMaxMutationBufferSize(conf));
                 bwConfig.setMaxLatency(getMaxLatency(conf), TimeUnit.MILLISECONDS);
                 bwConfig.setMaxWriteThreads(getMaxWriteThreads(conf));
-                mtbw = connector.createMultiTableBatchWriter(bwConfig);
+                mtbw = this.connector.createMultiTableBatchWriter(bwConfig);
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
             }
@@ -159,9 +160,9 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
         BatchWriter bw = null;
         String table = tableName.toString();
         
-        if (createTables && !conn.tableOperations().exists(table)) {
+        if (createTables && !this.connector.tableOperations().exists(table)) {
             try {
-                conn.tableOperations().create(table);
+                this.connector.tableOperations().create(table);
             } catch (AccumuloSecurityException e) {
                 log.error("Accumulo security violation creating " + table, e);
                 throw e;
@@ -240,18 +241,18 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     }
     
     public void returnConnector() {
-        if (null != this.connFactory) {
-            log.debug("Non-null connection factory");
-            if (null != this.conn) {
-                log.debug("Non-null connector to return");
-                try {
-                    this.connFactory.returnConnection(this.conn);
-                } catch (Exception e) {
-                    log.warn("Could not return connection to pool", e);
-                }
-                this.conn = null;
-            }
-        }
+//        if (null != this.connFactory) {
+//            log.debug("Non-null connection factory");
+//            if (null != this.conn) {
+//                log.debug("Non-null connector to return");
+//                try {
+//                    this.connFactory.returnConnection(this.conn);
+//                } catch (Exception e) {
+//                    log.warn("Could not return connection to pool", e);
+//                }
+//                this.conn = null;
+//            }
+//        }
     }
     
     public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {

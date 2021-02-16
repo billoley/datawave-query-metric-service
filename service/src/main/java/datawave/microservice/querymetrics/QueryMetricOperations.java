@@ -54,6 +54,9 @@ public class QueryMetricOperations {
                     handler.writeMetric(m, Collections.singletonList(m), m.getLastUpdated(), false);
                     this.lastWrittenQueryMetricCache.put(m.getQueryId(), m);
                 }
+
+                QueryMetric metric = handler.getQueryMetric("0000-1111-2222-3333");
+
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
             }

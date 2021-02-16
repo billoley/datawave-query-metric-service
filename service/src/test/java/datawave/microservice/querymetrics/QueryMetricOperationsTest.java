@@ -82,6 +82,7 @@ public class QueryMetricOperationsTest {
         m.setMarkings(markings);
         m.setEndDate(nowDate);
         m.setBeginDate(DateUtils.addDays(nowDate, -1));
+        m.setLastUpdated(nowDate);
         m.setQuery("USER:testuser");
         m.setQueryLogic("QueryMetricsQuery");
         m.setHost("localhost");

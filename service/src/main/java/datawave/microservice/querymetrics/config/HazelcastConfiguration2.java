@@ -10,8 +10,7 @@ import com.hazelcast.kubernetes.HazelcastKubernetesDiscoveryStrategyFactory;
 import com.hazelcast.kubernetes.KubernetesProperties;
 import com.hazelcast.spi.discovery.integration.DiscoveryServiceProvider;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
-import datawave.microservice.querymetrics.peristence.AccumuloCacheLoader;
-import datawave.microservice.querymetrics.peristence.AccumuloCacheWriter;
+import datawave.microservice.querymetrics.peristence.AccumuloMapStore;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -26,21 +25,21 @@ import java.io.ByteArrayInputStream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-//@Configuration
-//@ConditionalOnProperty(name = "hazelcast.server.enabled")
-//@EnableConfigurationProperties({HazelcastServerProperties.class})
-public class HazelcastConfiguration {
+@Configuration
+@ConditionalOnProperty(name = "hazelcast.server.enabled")
+@EnableConfigurationProperties({HazelcastServerProperties.class})
+public class HazelcastConfiguration2 {
     
     @Value("${spring.application.name}")
     private String clusterName;
     
     @Bean
-    HazelcastInstance hazelcastInstance(Config config, AccumuloCacheWriter cacheWriter) {
+    HazelcastInstance hazelcastInstance(Config config, @Qualifier("store") AccumuloMapStore mapStore) {
         HazelcastInstance instance = Hazelcast.newHazelcastInstance(config);
         try {
             HazelcastCacheManager cacheManager = new HazelcastCacheManager(instance);
             Cache lastWrittenQueryMetricsCache = cacheManager.getCache("lastWrittenQueryMetrics");
-            cacheWriter.setLastWrittenQueryMetricCache(lastWrittenQueryMetricsCache);
+            mapStore.setLastWrittenQueryMetricCache(lastWrittenQueryMetricsCache);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -49,10 +48,9 @@ public class HazelcastConfiguration {
     
     @Bean
     @Profile("consul")
-    public Config consulConfig(HazelcastServerProperties serverProperties, DiscoveryServiceProvider discoveryServiceProvider, AccumuloCacheWriter cacheWriter,
-                    AccumuloCacheLoader cacheLoader) {
+    public Config consulConfig(HazelcastServerProperties serverProperties, DiscoveryServiceProvider discoveryServiceProvider) {
         
-        Config config = generateDefaultConfig(serverProperties, cacheWriter, cacheLoader);
+        Config config = generateDefaultConfig(serverProperties);
         
         // Set up some default configuration. Do this after we read the XML configuration (which is really intended just to be cache configurations).
         if (!serverProperties.isSkipDiscoveryConfiguration()) {
@@ -67,9 +65,9 @@ public class HazelcastConfiguration {
     
     @Bean
     @Profile("k8s")
-    public Config k8sConfig(HazelcastServerProperties serverProperties, AccumuloCacheWriter cacheWriter, AccumuloCacheLoader cacheLoader) {
+    public Config k8sConfig(HazelcastServerProperties serverProperties) {
         
-        Config config = generateDefaultConfig(serverProperties, cacheWriter, cacheLoader);
+        Config config = generateDefaultConfig(serverProperties);
         
         if (!serverProperties.isSkipDiscoveryConfiguration()) {
             // Enable Kubernetes discovery
@@ -89,11 +87,11 @@ public class HazelcastConfiguration {
     
     @Bean
     @ConditionalOnMissingBean(Config.class)
-    public Config defaultConfig(HazelcastServerProperties serverProperties, AccumuloCacheWriter cacheWriter, AccumuloCacheLoader cacheLoader) {
-        return generateDefaultConfig(serverProperties, cacheWriter, cacheLoader);
+    public Config defaultConfig(HazelcastServerProperties serverProperties) {
+        return generateDefaultConfig(serverProperties);
     }
     
-    private Config generateDefaultConfig(HazelcastServerProperties serverProperties, AccumuloCacheWriter cacheWriter, AccumuloCacheLoader mapLoader) {
+    private Config generateDefaultConfig(HazelcastServerProperties serverProperties) {
         Config config;
         
         if (serverProperties.getXmlConfig() == null) {
@@ -112,18 +110,6 @@ public class HazelcastConfiguration {
             config.setProperty("hazelcast.merge.first.run.delay.seconds", String.valueOf(serverProperties.getInitialMergeDelaySeconds()));
             config.getNetworkConfig().setReuseAddress(true); // Reuse addresses (so we can try to keep our port on a restart)
         }
-        
-        // config.getMapConfigs().entrySet().forEach(e -> {
-        // config.getCacheConfigs().entrySet().forEach(e -> {
-        // switch (e.getKey()) {
-        // case "incomingQueryMetrics":
-        // e.getValue().setCacheWriter(cacheWriter);
-        // break;
-        // case "lastWrittenQueryMetrics":
-        // e.getValue().setCacheLoader(mapLoader);
-        // break;
-        // }
-        // });
         return config;
     }
 }

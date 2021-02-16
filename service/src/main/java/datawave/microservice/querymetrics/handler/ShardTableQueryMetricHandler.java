@@ -14,10 +14,15 @@ import datawave.ingest.mapreduce.handler.shard.AbstractColumnBasedHandler;
 import datawave.ingest.mapreduce.job.BulkIngestKey;
 import datawave.ingest.mapreduce.job.writer.LiveContextWriter;
 import datawave.ingest.table.config.TableConfigHelper;
+import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetrics.config.QueryMetricHandlerProperties;
+import datawave.microservice.querymetrics.logic.QueryMetricQueryLogicFactory;
 import datawave.query.iterator.QueryOptions;
 import datawave.query.metrics.QueryMetricQueryLogic;
 import datawave.security.authorization.DatawavePrincipal;
+import datawave.security.authorization.DatawaveUser;
+import datawave.security.authorization.SubjectIssuerDNPair;
+import datawave.security.util.DnUtils;
 import datawave.webservice.common.connection.AccumuloConnectionFactory.Priority;
 import datawave.webservice.common.logging.ThreadConfigurableLogger;
 import datawave.webservice.common.logging.ThreadLocalLogLevel;
@@ -76,6 +81,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -86,6 +92,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static datawave.security.authorization.DatawaveUser.UserType.USER;
 
 @Component
 @Lazy
@@ -111,13 +119,15 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
     private final StatusReporter reporter = new MockStatusReporter();
     private final AtomicBoolean tablesChecked = new AtomicBoolean(false);
     private AccumuloRecordWriter recordWriter = null;
-    
+    private QueryMetricQueryLogicFactory logicFactory;
     private UIDBuilder<UID> uidBuilder = UID.builder();
     
     @Autowired
-    public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("warehouse") Connector connector) {
+    public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("warehouse") Connector connector,
+                                        QueryMetricQueryLogicFactory logicFactory) {
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.connector = connector;
+        this.logicFactory = logicFactory;
         queryMetricHandlerProperties.getProperties().entrySet().forEach(e -> conf.set(e.getKey(), e.getValue()));
     }
     
@@ -360,7 +370,7 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
         query.setQuery("QUERY_ID == '" + queryId + "'");
         query.setQueryName(QUERY_METRICS_LOGIC_NAME);
         query.setColumnVisibility(queryMetricHandlerProperties.getVisibilityString());
-        query.setQueryAuthorizations(connectorAuthorizations);
+        query.setQueryAuthorizations("PUBLIC");
         // if (updatedQueryMetric.getUserDN() != null) {
         // query.setUserDN(updatedQueryMetric.getUserDN());
         // }
@@ -374,12 +384,15 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
     private List<QueryMetric> getQueryMetrics(BaseResponse response, Query query/* , DatawavePrincipal datawavePrincipal */) {
         List<QueryMetric> queryMetrics = new ArrayList<>();
         RunningQuery runningQuery;
-        Connector connector = null;
-        
+
         try {
-            QueryLogic<?> queryLogic = new QueryMetricQueryLogic();
+            QueryLogic<?> queryLogic = logicFactory.getObject();
+
             // FIXME
-            DatawavePrincipal datawavePrincipal = new DatawavePrincipal();
+            Collection<String> auths = Collections.singletonList("PUBLIC");
+            DatawaveUser datawaveUser = new DatawaveUser(SubjectIssuerDNPair.of("admin"), USER, null, auths, null, null, System.currentTimeMillis());
+            DatawavePrincipal datawavePrincipal = new DatawavePrincipal(Collections.singletonList(datawaveUser));
+
             runningQuery = new RunningQuery(null, connector, Priority.ADMIN, queryLogic, query, query.getQueryAuthorizations(), datawavePrincipal,
                             metricFactory);
             

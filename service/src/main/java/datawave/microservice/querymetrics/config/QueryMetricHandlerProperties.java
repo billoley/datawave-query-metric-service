@@ -30,6 +30,7 @@ public class QueryMetricHandlerProperties {
     protected int numShards = 10;
     protected String shardTableName = "QueryMetrics_e";
     protected String indexTableName = "QueryMetrics_i";
+    protected String dateIndexTableName = "QueryMetrics_di";
     protected String reverseIndexTableName = "QueryMetrics_r";
     protected String metadataTableName = "QueryMetrics_m";
     protected boolean metadataTableFrequencyEnabled = true;
@@ -51,7 +52,7 @@ public class QueryMetricHandlerProperties {
     protected int recordWriterMaxMemory = 10000000;
     protected int recordWriterMaxLatency = 60000;
     protected int recordWriterNumThreads = 4;
-    protected String policyEnforcerClass = IngestPolicyEnforcer.NoOpIngestPolicyEnforcer.class.getCanonicalName();
+    protected String policyEnforcerClass = "datawave.policy.IngestPolicyEnforcer$NoOpIngestPolicyEnforcer";
     
     public Map<String,String> getProperties() {
         
@@ -170,7 +171,15 @@ public class QueryMetricHandlerProperties {
     public void setIndexTableName(String indexTableName) {
         this.indexTableName = indexTableName;
     }
-    
+
+    public String getDateIndexTableName() {
+        return dateIndexTableName;
+    }
+
+    public void setDateIndexTableName(String dateIndexTableName) {
+        this.dateIndexTableName = dateIndexTableName;
+    }
+
     public String getReverseIndexTableName() {
         return reverseIndexTableName;
     }

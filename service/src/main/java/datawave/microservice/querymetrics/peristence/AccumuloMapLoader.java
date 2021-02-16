@@ -1,29 +1,36 @@
 package datawave.microservice.querymetrics.peristence;
 
+import com.hazelcast.core.MapLoader;
+import com.hazelcast.core.MapStoreFactory;
 import datawave.microservice.querymetrics.handler.ShardTableQueryMetricHandler;
 import datawave.webservice.query.metric.QueryMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-import javax.cache.configuration.Factory;
 
-import javax.cache.integration.CacheLoader;
-import javax.cache.integration.CacheLoaderException;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Properties;
 
 @Component
-public class AccumuloCacheLoader implements CacheLoader<String,QueryMetric>, Factory<CacheLoader<String,QueryMetric>> {
+@Qualifier("loader")
+public class AccumuloMapLoader implements MapLoader<String,QueryMetric>, MapStoreFactory<String,QueryMetric> {
     
     private Logger log = LoggerFactory.getLogger(getClass());
-    private static AccumuloCacheLoader instance;
+    private static AccumuloMapLoader instance;
     protected ShardTableQueryMetricHandler handler;
-    
+
+    public AccumuloMapLoader() {
+
+    }
+
     @Autowired
-    public AccumuloCacheLoader(ShardTableQueryMetricHandler handler) {
+    public AccumuloMapLoader(ShardTableQueryMetricHandler handler) {
         this.handler = handler;
-        AccumuloCacheLoader.instance = this;
+        AccumuloMapLoader.instance = this;
     }
     
     @Override
@@ -32,10 +39,9 @@ public class AccumuloCacheLoader implements CacheLoader<String,QueryMetric>, Fac
     }
     
     @Override
-    public Map<String,QueryMetric> loadAll(Iterable<? extends String> collection) throws CacheLoaderException {
-        
+    public Map<String,QueryMetric> loadAll(Collection<String> keys) {
         Map<String,QueryMetric> metrics = new LinkedHashMap<>();
-        collection.forEach(id -> {
+        keys.forEach(id -> {
             QueryMetric queryMetric = this.handler.getQueryMetric(id);
             if (queryMetric != null) {
                 metrics.put(id, queryMetric);
@@ -45,7 +51,13 @@ public class AccumuloCacheLoader implements CacheLoader<String,QueryMetric>, Fac
     }
     
     @Override
-    public CacheLoader<String,QueryMetric> create() {
-        return AccumuloCacheLoader.instance;
+    public Iterable<String> loadAllKeys() {
+        // not implemented
+        return null;
+    }
+
+    @Override
+    public MapLoader<String,QueryMetric> newMapStore(String mapName, Properties properties) {
+        return AccumuloMapLoader.instance;
     }
 }
