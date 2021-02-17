@@ -28,7 +28,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @Configuration
 @ConditionalOnProperty(name = "hazelcast.server.enabled")
 @EnableConfigurationProperties({HazelcastServerProperties.class})
-public class HazelcastConfiguration2 {
+public class HazelcastConfiguration {
     
     @Value("${spring.application.name}")
     private String clusterName;

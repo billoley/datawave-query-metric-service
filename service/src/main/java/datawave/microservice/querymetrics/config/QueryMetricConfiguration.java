@@ -3,9 +3,10 @@ package datawave.microservice.querymetrics.config;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
-import datawave.marking.MarkingFunctions;
 import datawave.microservice.cached.CacheInspector;
 import datawave.microservice.cached.LockableCacheInspector;
 import datawave.microservice.cached.LockableHazelcastCacheInspector;
@@ -13,9 +14,12 @@ import datawave.microservice.cached.UniversalLockableCacheInspector;
 import datawave.microservice.querymetrics.peristence.MetricStorageCache;
 import datawave.query.util.DateIndexHelperFactory;
 import datawave.query.util.MetadataHelperFactory;
+import datawave.webservice.query.cache.QueryMetricFactory;
+import datawave.webservice.query.cache.QueryMetricFactoryImpl;
+import datawave.webservice.query.metric.BaseQueryMetric;
+import datawave.webservice.query.metric.QueryMetric;
 import datawave.webservice.query.result.event.DefaultResponseObjectFactory;
 import datawave.webservice.query.result.event.ResponseObjectFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
@@ -33,7 +37,11 @@ public class QueryMetricConfiguration {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        SimpleModule module = new SimpleModule(QueryMetric.class.getName());
+        module.addAbstractTypeMapping(BaseQueryMetric.class, QueryMetric.class);
+        mapper.registerModule(module);
         mapper.registerModule(new GuavaModule());
+        mapper.registerModule(new JaxbAnnotationModule());
         return mapper;
     }
     
@@ -61,5 +69,10 @@ public class QueryMetricConfiguration {
     @Bean
     public DateIndexHelperFactory dateIndexHelperFactory() {
         return new DateIndexHelperFactory();
+    }
+    
+    @Bean
+    QueryMetricFactory queryMetricFactory() {
+        return new QueryMetricFactoryImpl();
     }
 }

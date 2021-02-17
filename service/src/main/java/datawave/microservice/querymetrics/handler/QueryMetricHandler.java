@@ -1,23 +1,14 @@
 package datawave.microservice.querymetrics.handler;
 
 import datawave.webservice.query.metric.BaseQueryMetric;
-import datawave.webservice.query.metric.QueryMetric;
 
 import java.util.Map;
 
 public interface QueryMetricHandler<T extends BaseQueryMetric> {
     
-    QueryMetric combineMetrics(T metric, QueryMetric cachedQueryMetric) throws Exception;
+    T combineMetrics(T metric, T cachedQueryMetric) throws Exception;
     
     Map<String,String> getEventFields(BaseQueryMetric queryMetric);
-    
-    // BaseQueryMetricListResponse<T> query(String user, String queryId, DatawavePrincipal datawavePrincipal);
-    //
-    // QueryMetricsSummaryResponse getTotalQueriesSummaryCounts(Date begin, Date end, DatawavePrincipal datawavePrincipal);
-    //
-    // QueryMetricsSummaryHtmlResponse getTotalQueriesSummary(Date begin, Date end, DatawavePrincipal datawavePrincipal);
-    //
-    // QueryMetricsSummaryHtmlResponse getUserQueriesSummary(Date begin, Date end, DatawavePrincipal datawavePrincipal);
     
     void flush() throws Exception;
     

@@ -5,7 +5,6 @@ import datawave.data.type.NumberType;
 import datawave.ingest.table.config.MetadataTableConfigHelper;
 import datawave.ingest.table.config.ShardTableConfigHelper;
 import datawave.microservice.querymetrics.handler.ContentQueryMetricsIngestHelper;
-import datawave.policy.IngestPolicyEnforcer;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.boot.context.properties.ConfigurationProperties;

@@ -27,7 +27,6 @@ import datawave.webservice.common.logging.ThreadLocalLogLevel;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.QueryImpl;
 import datawave.webservice.query.cache.QueryMetricFactory;
-import datawave.webservice.query.cache.QueryMetricFactoryImpl;
 import datawave.webservice.query.cache.ResultsPage;
 import datawave.webservice.query.exception.QueryException;
 import datawave.webservice.query.exception.QueryExceptionType;
@@ -35,7 +34,6 @@ import datawave.webservice.query.logic.QueryLogic;
 import datawave.webservice.query.metric.BaseQueryMetric;
 import datawave.webservice.query.metric.BaseQueryMetric.Lifecycle;
 import datawave.webservice.query.metric.BaseQueryMetric.PageMetric;
-import datawave.webservice.query.metric.QueryMetric;
 import datawave.webservice.query.result.event.EventBase;
 import datawave.webservice.query.result.event.FieldBase;
 import datawave.webservice.query.runner.RunningQuery;
@@ -94,7 +92,7 @@ import static datawave.security.authorization.DatawaveUser.UserType.USER;
 
 @Component
 @Lazy
-public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMetric> {
+public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements QueryMetricHandler<T> {
     private static final Logger log = ThreadConfigurableLogger.getLogger(ShardTableQueryMetricHandler.class);
     
     private static final String QUERY_METRICS_LOGIC_NAME = "QueryMetricsQuery";
@@ -102,7 +100,6 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
     
     protected Connector connector;
     protected QueryMetricHandlerProperties queryMetricHandlerProperties;
-    private QueryMetricFactory metricFactory = new QueryMetricFactoryImpl();
     
     private String connectorAuthorizations = null;
     
@@ -117,11 +114,12 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
     private final AtomicBoolean tablesChecked = new AtomicBoolean(false);
     private AccumuloRecordWriter recordWriter = null;
     private QueryMetricQueryLogicFactory logicFactory;
+    private QueryMetricFactory metricFactory;
     private UIDBuilder<UID> uidBuilder = UID.builder();
     
     @Autowired
     public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("warehouse") Connector connector,
-                    QueryMetricQueryLogicFactory logicFactory) {
+                    QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory queryMetricFactory) {
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.connector = connector;
         this.logicFactory = logicFactory;
@@ -158,7 +156,7 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
         }
     }
     
-    public void writeMetric(QueryMetric updatedQueryMetric, List<QueryMetric> storedQueryMetrics, Date lastUpdated, boolean delete) throws Exception {
+    public void writeMetric(T updatedQueryMetric, List<T> storedQueryMetrics, Date lastUpdated, boolean delete) throws Exception {
         LiveContextWriter contextWriter = null;
         
         MapContext<Text,RawRecordContainer,Text,Mutation> context = null;
@@ -170,7 +168,7 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
             TaskAttemptID taskId = new TaskAttemptID(new TaskID(new JobID(JOB_ID, 1), TaskType.MAP, 1), 1);
             context = new MapContextImpl<>(conf, taskId, null, recordWriter, null, reporter, null);
             
-            for (QueryMetric storedQueryMetric : storedQueryMetrics) {
+            for (T storedQueryMetric : storedQueryMetrics) {
                 AbstractColumnBasedHandler<Key> handler = new ContentQueryMetricsHandler() {
                     @Override
                     public AbstractContentIngestHelper getContentIndexingDataTypeHelper() {
@@ -212,8 +210,8 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
         return eventFields;
     }
     
-    private Multimap<BulkIngestKey,Value> getEntries(AbstractColumnBasedHandler<Key> handler, QueryMetric updatedQueryMetric, QueryMetric storedQueryMetric,
-                    Date lastUpdated, boolean delete) {
+    private Multimap<BulkIngestKey,Value> getEntries(AbstractColumnBasedHandler<Key> handler, T updatedQueryMetric, T storedQueryMetric, Date lastUpdated,
+                    boolean delete) {
         Type type = TypeRegistry.getType("querymetrics");
         ContentQueryMetricsIngestHelper ingestHelper = new ContentQueryMetricsIngestHelper(delete);
         
@@ -296,7 +294,7 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
     
     @SuppressWarnings("unchecked")
     @Override
-    public QueryMetric combineMetrics(QueryMetric updatedQueryMetric, QueryMetric cachedQueryMetric) throws Exception {
+    public T combineMetrics(T updatedQueryMetric, T cachedQueryMetric) throws Exception {
         
         try {
             enableLogs(false);
@@ -319,12 +317,12 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
         }
     }
     
-    public QueryMetric getQueryMetric(final String queryId) {
-        List<QueryMetric> queryMetrics = getQueryMetrics(queryId);
+    public T getQueryMetric(final String queryId) {
+        List<T> queryMetrics = getQueryMetrics(queryId);
         return queryMetrics.isEmpty() ? null : queryMetrics.get(0);
     }
     
-    private List<QueryMetric> getQueryMetrics(final String queryId) {
+    private List<T> getQueryMetrics(final String queryId) {
         Date end = new Date();
         Date begin = DateUtils.setYears(end, 2000);
         QueryImpl query = new QueryImpl();
@@ -345,8 +343,8 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
         return getQueryMetrics(null, query);
     }
     
-    private List<QueryMetric> getQueryMetrics(BaseResponse response, Query query/* , DatawavePrincipal datawavePrincipal */) {
-        List<QueryMetric> queryMetrics = new ArrayList<>();
+    private List<T> getQueryMetrics(BaseResponse response, Query query/* , DatawavePrincipal datawavePrincipal */) {
+        List<T> queryMetrics = new ArrayList<>();
         RunningQuery runningQuery;
         
         try {
@@ -394,7 +392,7 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
             List<EventBase> eventList = eventQueryResponse.getEvents();
             
             for (EventBase<?,?> event : eventList) {
-                QueryMetric metric = toMetric(event);
+                T metric = toMetric(event);
                 queryMetrics.add(metric);
             }
         } catch (Exception e) {
@@ -532,12 +530,12 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
     // return response;
     // }
     //
-    public QueryMetric toMetric(datawave.webservice.query.result.event.EventBase event) {
+    public T toMetric(datawave.webservice.query.result.event.EventBase event) {
         SimpleDateFormat sdf_date_time1 = new SimpleDateFormat("yyyyMMdd HHmmss");
         SimpleDateFormat sdf_date_time2 = new SimpleDateFormat("yyyyMMdd HHmmss");
         
         try {
-            QueryMetric m = new QueryMetric();
+            T m = (T) metricFactory.createMetric();
             List<FieldBase> field = event.getFields();
             
             TreeMap<Long,PageMetric> pageMetrics = Maps.newTreeMap();
@@ -798,40 +796,4 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
             log.error(e.getMessage(), e);
         }
     }
-    
-    // @Override
-    // public QueryMetricsSummaryHtmlResponse getTotalQueriesSummary(Date begin, Date end, DatawavePrincipal datawavePrincipal) {
-    // QueryMetricsSummaryHtmlResponse response = new QueryMetricsSummaryHtmlResponse();
-    //
-    // try {
-    // enableLogs(false);
-    // enableLogs(true);
-    // // this method is open to any user
-    // datawavePrincipal = callerPrincipal;
-    //
-    // Collection<? extends Collection<String>> authorizations = datawavePrincipal.getAuthorizations();
-    // QueryImpl query = new QueryImpl();
-    // query.setBeginDate(begin);
-    // query.setEndDate(end);
-    // query.setQueryLogicName(QUERY_METRICS_LOGIC_NAME);
-    // query.setQuery("USER > 'A' && USER < 'ZZZZZZZ'");
-    // query.setQueryName(QUERY_METRICS_LOGIC_NAME);
-    // query.setColumnVisibility(visibilityString);
-    // query.setQueryAuthorizations(AuthorizationsUtil.buildAuthorizationString(authorizations));
-    // query.setExpirationDate(DateUtils.addDays(new Date(), 1));
-    // query.setPagesize(1000);
-    // query.setUserDN(datawavePrincipal.getShortName());
-    // query.setId(UUID.randomUUID());
-    // query.setParameters(ImmutableMap.of(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true"));
-    //
-    // List<QueryMetric> queryMetrics = getQueryMetrics(response, query, datawavePrincipal);
-    // response = processQueryMetricsHtmlSummary(queryMetrics);
-    // } catch (IOException e) {
-    // log.error(e.getMessage(), e);
-    // } finally {
-    // enableLogs(true);
-    // }
-    //
-    // return response;
-    // }
 }

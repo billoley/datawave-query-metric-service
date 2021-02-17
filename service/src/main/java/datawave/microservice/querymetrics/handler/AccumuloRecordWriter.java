@@ -2,7 +2,6 @@ package datawave.microservice.querymetrics.handler;
 
 import datawave.accumulo.inmemory.InMemoryInstance;
 import datawave.common.util.ArgumentChecker;
-import datawave.webservice.common.connection.AccumuloConnectionFactory;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;

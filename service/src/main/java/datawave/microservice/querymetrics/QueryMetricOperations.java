@@ -2,7 +2,7 @@ package datawave.microservice.querymetrics;
 
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.microservice.querymetrics.handler.ShardTableQueryMetricHandler;
-import datawave.webservice.query.metric.QueryMetric;
+import datawave.webservice.query.metric.BaseQueryMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,31 +38,22 @@ public class QueryMetricOperations {
     
     @RequestMapping(path = "/update", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
-    public String update(@RequestBody Collection<QueryMetric> queryMetrics) {
+    public String update(@RequestBody Collection<BaseQueryMetric> queryMetrics) {
         System.out.println(queryMetrics.toString());
-        
-        StringBuilder sb = new StringBuilder();
-        
-        QueryMetric metric = handler.getQueryMetric("0000-1111-2222-3333");
-        sb.append("from STQMH before: ").append(metric).append("\n");
-        
-        metric = this.lastWrittenQueryMetricCache.get("0000-1111-2222-3333", QueryMetric.class);
-        sb.append("from lastWrittenQueryMetricCache before: ").append(metric).append("\n");
-        
-        metric = this.incomingQueryMetrics.get("0000-1111-2222-3333", QueryMetric.class);
-        sb.append("from incomingQueryMetrics before: ").append(metric).append("\n");
         
         queryMetrics.forEach(m -> {
             try {
                 if (isHazelCast) {
                     this.incomingQueryMetrics.put(m.getQueryId(), m);
                 } else {
-                    QueryMetric lastQueryMetric = (QueryMetric) lastWrittenQueryMetricCache.get(m.getQueryId());
+                    BaseQueryMetric lastQueryMetric = lastWrittenQueryMetricCache.get(m.getQueryId(), BaseQueryMetric.class);
                     if (lastQueryMetric != null) {
-                        m = handler.combineMetrics(m, lastQueryMetric);
-                        handler.writeMetric(m, Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
+                        BaseQueryMetric combined = handler.combineMetrics(m, lastQueryMetric);
+                        handler.writeMetric(combined, Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
+                        handler.writeMetric(combined, Collections.singletonList(combined), combined.getLastUpdated(), false);
+                    } else {
+                        handler.writeMetric(m, Collections.singletonList(m), m.getLastUpdated(), false);
                     }
-                    handler.writeMetric(m, Collections.singletonList(m), m.getLastUpdated(), false);
                     this.lastWrittenQueryMetricCache.put(m.getQueryId(), m);
                 }
             } catch (Exception e) {
@@ -70,15 +61,6 @@ public class QueryMetricOperations {
             }
         });
         
-        metric = handler.getQueryMetric("0000-1111-2222-3333");
-        sb.append("from STQMH after: ").append(metric).append("\n");
-        
-        metric = this.lastWrittenQueryMetricCache.get("0000-1111-2222-3333", QueryMetric.class);
-        sb.append("from lastWrittenQueryMetricCache after: ").append(metric).append("\n");
-        
-        metric = this.incomingQueryMetrics.get("0000-1111-2222-3333", QueryMetric.class);
-        sb.append("from incomingQueryMetrics after: ").append(metric).append("\n");
-        
-        return sb.toString();
+        return "Success";
     }
 }

@@ -3,7 +3,7 @@ package datawave.microservice.querymetrics.peristence;
 import com.hazelcast.core.MapLoader;
 import com.hazelcast.core.MapStoreFactory;
 import datawave.microservice.querymetrics.handler.ShardTableQueryMetricHandler;
-import datawave.webservice.query.metric.QueryMetric;
+import datawave.webservice.query.metric.BaseQueryMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,32 +17,36 @@ import java.util.Properties;
 
 @Component
 @Qualifier("loader")
-public class AccumuloMapLoader implements MapLoader<String,QueryMetric>, MapStoreFactory<String,QueryMetric> {
+public class AccumuloMapLoader<T extends BaseQueryMetric> implements MapLoader<String,T> {
     
     private Logger log = LoggerFactory.getLogger(getClass());
     private static AccumuloMapLoader instance;
-    protected ShardTableQueryMetricHandler handler;
+    protected ShardTableQueryMetricHandler<T> handler;
     
-    public AccumuloMapLoader() {
+    public static class Factory implements MapStoreFactory<String,BaseQueryMetric> {
         
+        @Override
+        public MapLoader<String,BaseQueryMetric> newMapStore(String mapName, Properties properties) {
+            return AccumuloMapLoader.instance;
+        }
     }
     
     @Autowired
-    public AccumuloMapLoader(ShardTableQueryMetricHandler handler) {
+    public AccumuloMapLoader(ShardTableQueryMetricHandler<T> handler) {
         this.handler = handler;
         AccumuloMapLoader.instance = this;
     }
     
     @Override
-    public QueryMetric load(String s) {
+    public T load(String s) {
         return this.handler.getQueryMetric(s);
     }
     
     @Override
-    public Map<String,QueryMetric> loadAll(Collection<String> keys) {
-        Map<String,QueryMetric> metrics = new LinkedHashMap<>();
+    public Map<String,T> loadAll(Collection<String> keys) {
+        Map<String,T> metrics = new LinkedHashMap<>();
         keys.forEach(id -> {
-            QueryMetric queryMetric = this.handler.getQueryMetric(id);
+            T queryMetric = this.handler.getQueryMetric(id);
             if (queryMetric != null) {
                 metrics.put(id, queryMetric);
             }
@@ -54,10 +58,5 @@ public class AccumuloMapLoader implements MapLoader<String,QueryMetric>, MapStor
     public Iterable<String> loadAllKeys() {
         // not implemented
         return null;
-    }
-    
-    @Override
-    public MapLoader<String,QueryMetric> newMapStore(String mapName, Properties properties) {
-        return AccumuloMapLoader.instance;
     }
 }
