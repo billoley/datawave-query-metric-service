@@ -24,12 +24,7 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 public class QueryMetricTestConfiguration {
     
-    private static final int ZK_PORT = 22181;
-    private static final String ZK_MONITOR_PATH = "/accumulo/%s/monitor/http_addr";
-    public static final String ZK_MONITOR_DATA = "localhost:9995";
-    
     private final String USER = "root";
-    private final String PASSWORD = "testPassword";
     
     public QueryMetricTestConfiguration() {}
     
@@ -37,22 +32,7 @@ public class QueryMetricTestConfiguration {
     @Lazy
     @Qualifier("warehouse")
     public Instance memoryWarehouseInstance() throws Exception {
-        final Instance instance = new InMemoryInstance();
-        // {
-        // @Override
-        // public String getZooKeepers() {
-        // return String.format("localhost:%d", ZK_PORT);
-        // }
-        // };
-//        //@formatter:off
-//        try (CuratorFramework curator = CuratorFrameworkFactory.newClient(
-//        String.format("localhost:%d", ZK_PORT), new RetryOneTime(500))) {
-//            curator.start();
-//            curator.create().creatingParentContainersIfNeeded()
-//                    .forPath(String.format(ZK_MONITOR_PATH, instance.getInstanceID()), ZK_MONITOR_DATA.getBytes());
-//        }
-        //@formatter:on
-        return instance;
+        return new InMemoryInstance();
     }
     
     @Bean

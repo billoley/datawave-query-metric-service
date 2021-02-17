@@ -73,7 +73,7 @@ public class QueryMetricHandlerProperties {
         p.put("shard.table.name", shardTableName);
         p.put("shard.global.index.table.name", indexTableName);
         p.put("shard.global.rindex.table.name", reverseIndexTableName);
-        p.put("metadata.table.name:", metadataTableName);
+        p.put("metadata.table.name", metadataTableName);
         p.put("metadata.term.frequency.enabled", Boolean.toString(metadataTableFrequencyEnabled));
         p.put("shard.table.locality.groups", "termfrequency:tf");
         p.put("shard.table.index.bloom.enable", Boolean.toString(enableBloomFilter));
@@ -171,15 +171,15 @@ public class QueryMetricHandlerProperties {
     public void setIndexTableName(String indexTableName) {
         this.indexTableName = indexTableName;
     }
-
+    
     public String getDateIndexTableName() {
         return dateIndexTableName;
     }
-
+    
     public void setDateIndexTableName(String dateIndexTableName) {
         this.dateIndexTableName = dateIndexTableName;
     }
-
+    
     public String getReverseIndexTableName() {
         return reverseIndexTableName;
     }

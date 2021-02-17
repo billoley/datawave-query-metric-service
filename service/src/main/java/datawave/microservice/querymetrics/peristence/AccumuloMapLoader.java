@@ -22,11 +22,11 @@ public class AccumuloMapLoader implements MapLoader<String,QueryMetric>, MapStor
     private Logger log = LoggerFactory.getLogger(getClass());
     private static AccumuloMapLoader instance;
     protected ShardTableQueryMetricHandler handler;
-
+    
     public AccumuloMapLoader() {
-
+        
     }
-
+    
     @Autowired
     public AccumuloMapLoader(ShardTableQueryMetricHandler handler) {
         this.handler = handler;
@@ -55,7 +55,7 @@ public class AccumuloMapLoader implements MapLoader<String,QueryMetric>, MapStor
         // not implemented
         return null;
     }
-
+    
     @Override
     public MapLoader<String,QueryMetric> newMapStore(String mapName, Properties properties) {
         return AccumuloMapLoader.instance;

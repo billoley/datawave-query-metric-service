@@ -11,13 +11,13 @@ import java.util.Collection;
 import java.util.Set;
 
 public class QueryMetricQueryLogic extends ShardQueryLogic {
-
+    
     private Collection<String> roles = null;
-
+    
     public QueryMetricQueryLogic() {
         super();
     }
-
+    
     public QueryMetricQueryLogic(QueryMetricQueryLogic other) {
         super(other);
         if (other.roles != null) {
@@ -25,12 +25,12 @@ public class QueryMetricQueryLogic extends ShardQueryLogic {
             roles.addAll(other.roles);
         }
     }
-
+    
     @Override
     public QueryMetricQueryLogic clone() {
         return new QueryMetricQueryLogic(this);
     }
-
+    
     @Override
     public final GenericQueryConfiguration initialize(Connector connection, Query settings, Set<Authorizations> auths) throws Exception {
         return super.initialize(connection, settings, auths);

@@ -11,6 +11,10 @@ import datawave.microservice.cached.LockableCacheInspector;
 import datawave.microservice.cached.LockableHazelcastCacheInspector;
 import datawave.microservice.cached.UniversalLockableCacheInspector;
 import datawave.microservice.querymetrics.peristence.MetricStorageCache;
+import datawave.query.util.DateIndexHelperFactory;
+import datawave.query.util.MetadataHelperFactory;
+import datawave.webservice.query.result.event.DefaultResponseObjectFactory;
+import datawave.webservice.query.result.event.ResponseObjectFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.CacheManager;
@@ -23,12 +27,6 @@ import static datawave.marking.MarkingFunctions.Factory.log;
 @EnableConfigurationProperties({QueryMetricTimelyProperties.class, QueryMetricHandlerProperties.class})
 
 public class QueryMetricConfiguration {
-    
-    @Bean
-    @ConditionalOnMissingBean
-    public MarkingFunctions markingFunctions() {
-        return new MarkingFunctions.Default();
-    }
     
     @Bean
     public ObjectMapper objectMapper() {
@@ -48,5 +46,20 @@ public class QueryMetricConfiguration {
         else
             lockableCacheInspector = new UniversalLockableCacheInspector(cacheInspector);
         return new MetricStorageCache(lockableCacheInspector);
+    }
+    
+    @Bean
+    public ResponseObjectFactory responseObjectFactory() {
+        return new DefaultResponseObjectFactory();
+    }
+    
+    @Bean
+    public MetadataHelperFactory metadataHelperFactory() {
+        return new MetadataHelperFactory();
+    }
+    
+    @Bean
+    public DateIndexHelperFactory dateIndexHelperFactory() {
+        return new DateIndexHelperFactory();
     }
 }

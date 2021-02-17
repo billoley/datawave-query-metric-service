@@ -46,7 +46,7 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     private long valCount = 0;
     
     private Connector connector;
-//    private AccumuloConnectionFactory connFactory;
+    // private AccumuloConnectionFactory connFactory;
     private static final String PREFIX = AccumuloRecordWriter.class.getSimpleName();
     private static final String OUTPUT_INFO_HAS_BEEN_SET = PREFIX + ".configured";
     private static final String INSTANCE_HAS_BEEN_SET = PREFIX + ".instanceConfigured";
@@ -241,18 +241,18 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     }
     
     public void returnConnector() {
-//        if (null != this.connFactory) {
-//            log.debug("Non-null connection factory");
-//            if (null != this.conn) {
-//                log.debug("Non-null connector to return");
-//                try {
-//                    this.connFactory.returnConnection(this.conn);
-//                } catch (Exception e) {
-//                    log.warn("Could not return connection to pool", e);
-//                }
-//                this.conn = null;
-//            }
-//        }
+        // if (null != this.connFactory) {
+        // log.debug("Non-null connection factory");
+        // if (null != this.conn) {
+        // log.debug("Non-null connector to return");
+        // try {
+        // this.connFactory.returnConnection(this.conn);
+        // } catch (Exception e) {
+        // log.warn("Could not return connection to pool", e);
+        // }
+        // this.conn = null;
+        // }
+        // }
     }
     
     public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {

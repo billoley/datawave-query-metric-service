@@ -10,19 +10,17 @@ import datawave.ingest.data.RawRecordContainer;
 import datawave.ingest.data.Type;
 import datawave.ingest.data.TypeRegistry;
 import datawave.ingest.data.config.NormalizedContentInterface;
+import datawave.ingest.data.config.ingest.AbstractContentIngestHelper;
 import datawave.ingest.mapreduce.handler.shard.AbstractColumnBasedHandler;
 import datawave.ingest.mapreduce.job.BulkIngestKey;
 import datawave.ingest.mapreduce.job.writer.LiveContextWriter;
 import datawave.ingest.table.config.TableConfigHelper;
-import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetrics.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetrics.logic.QueryMetricQueryLogicFactory;
 import datawave.query.iterator.QueryOptions;
-import datawave.query.metrics.QueryMetricQueryLogic;
 import datawave.security.authorization.DatawavePrincipal;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.SubjectIssuerDNPair;
-import datawave.security.util.DnUtils;
 import datawave.webservice.common.connection.AccumuloConnectionFactory.Priority;
 import datawave.webservice.common.logging.ThreadConfigurableLogger;
 import datawave.webservice.common.logging.ThreadLocalLogLevel;
@@ -74,7 +72,6 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import datawave.webservice.query.QueryImpl.Parameter;
 
-import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
@@ -124,15 +121,12 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
     
     @Autowired
     public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("warehouse") Connector connector,
-                                        QueryMetricQueryLogicFactory logicFactory) {
+                    QueryMetricQueryLogicFactory logicFactory) {
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.connector = connector;
         this.logicFactory = logicFactory;
         queryMetricHandlerProperties.getProperties().entrySet().forEach(e -> conf.set(e.getKey(), e.getValue()));
-    }
-    
-    @PostConstruct
-    private void initialize() {
+        
         try {
             connectorAuthorizations = connector.securityOperations().getUserAuthorizations(connector.whoami()).toString();
             reload();
@@ -177,7 +171,12 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
             context = new MapContextImpl<>(conf, taskId, null, recordWriter, null, reporter, null);
             
             for (QueryMetric storedQueryMetric : storedQueryMetrics) {
-                AbstractColumnBasedHandler<Key> handler = new ContentQueryMetricsHandler<>();
+                AbstractColumnBasedHandler<Key> handler = new ContentQueryMetricsHandler() {
+                    @Override
+                    public AbstractContentIngestHelper getContentIndexingDataTypeHelper() {
+                        return (ContentQueryMetricsIngestHelper) helper;
+                    }
+                };
                 handler.setup(context);
                 
                 Multimap<BulkIngestKey,Value> r = getEntries(handler, updatedQueryMetric, storedQueryMetric, lastUpdated, delete);
@@ -250,7 +249,6 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
             handler.getMetadata().addEventWithoutLoadDates(ingestHelper, event, fields);
         }
         
-        String eventTable = handler.getShardTableName().toString();
         String indexTable = handler.getShardIndexTableName().toString();
         String reverseIndexTable = handler.getShardReverseIndexTableName().toString();
         int fieldSizeThreshold = ingestHelper.getFieldSizeThreshold();
@@ -316,40 +314,6 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
                 updatedQueryMetric.setPageTimes(newPageMetrics);
             }
             return updatedQueryMetric;
-            
-            // List<QueryMetric> queryMetrics = new ArrayList<>();
-            
-            // if (cachedQueryMetric == null) {
-            // // if numPages > 0 or Lifecycle > DEFINED, then we should have a metric cached already
-            // // if we don't, then query for the current stored metric
-            // if (updatedQueryMetric.getNumPages() > 0 || updatedQueryMetric.getLifecycle().compareTo(Lifecycle.DEFINED) > 0) {
-            // queryMetrics = getQueryMetrics(updatedQueryMetric.getQueryId());
-            // }
-            // } else {
-            // queryMetrics = Collections.singletonList(cachedQueryMetric);
-            // }
-            
-            // if (!queryMetrics.isEmpty()) {
-            // writeMetrics(updatedQueryMetric, queryMetrics, lastUpdated, true);
-            // }
-            //
-            // long nextUpdateNumber = 0;
-            //
-            // for (BaseQueryMetric m : queryMetrics) {
-            // if ((m.getNumUpdates() + 1) > nextUpdateNumber) {
-            // nextUpdateNumber = m.getNumUpdates() + 1;
-            // }
-            // }
-            //
-            // updatedQueryMetric.setNumUpdates(nextUpdateNumber);
-            //
-            // // synchronized (ShardTableQueryMetricHandler.class) {
-            // newCachedQueryMetric.setNumUpdates(nextUpdateNumber);
-            // metricsCache.put(updatedQueryMetric.getQueryId(), newCachedQueryMetric);
-            // // }
-            //
-            // // write new entry
-            // writeMetrics(updatedQueryMetric, Collections.singletonList(updatedQueryMetric), lastUpdated, false);
         } finally {
             enableLogs(true);
         }
@@ -384,15 +348,15 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
     private List<QueryMetric> getQueryMetrics(BaseResponse response, Query query/* , DatawavePrincipal datawavePrincipal */) {
         List<QueryMetric> queryMetrics = new ArrayList<>();
         RunningQuery runningQuery;
-
+        
         try {
             QueryLogic<?> queryLogic = logicFactory.getObject();
-
+            
             // FIXME
             Collection<String> auths = Collections.singletonList("PUBLIC");
             DatawaveUser datawaveUser = new DatawaveUser(SubjectIssuerDNPair.of("admin"), USER, null, auths, null, null, System.currentTimeMillis());
             DatawavePrincipal datawavePrincipal = new DatawavePrincipal(Collections.singletonList(datawaveUser));
-
+            
             runningQuery = new RunningQuery(null, connector, Priority.ADMIN, queryLogic, query, query.getQueryAuthorizations(), datawavePrincipal,
                             metricFactory);
             

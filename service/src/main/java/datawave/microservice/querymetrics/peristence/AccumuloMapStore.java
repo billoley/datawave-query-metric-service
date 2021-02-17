@@ -28,11 +28,11 @@ public class AccumuloMapStore extends AccumuloMapLoader implements MapStore<Stri
     private static AccumuloMapStore instance;
     
     private Cache lastWrittenQueryMetricCache;
-
+    
     public AccumuloMapStore() {
-
+        
     }
-
+    
     @Autowired
     public AccumuloMapStore(ShardTableQueryMetricHandler handler) {
         super(handler);
@@ -46,16 +46,16 @@ public class AccumuloMapStore extends AccumuloMapLoader implements MapStore<Stri
     @Override
     public void store(String queryId, QueryMetric updatedMetric) {
         try {
-            QueryMetric lastQueryMetric = null; //(QueryMetric) lastWrittenQueryMetricCache.get(queryId);
-//            if (lastQueryMetric != null) {
-//                updatedMetric = handler.combineMetrics(updatedMetric, lastQueryMetric);
-//                handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
-//            }
+            QueryMetric lastQueryMetric = lastWrittenQueryMetricCache.get(queryId, QueryMetric.class);
+            if (lastQueryMetric != null) {
+                updatedMetric = handler.combineMetrics(updatedMetric, lastQueryMetric);
+                handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
+            }
             handler.writeMetric(updatedMetric, Collections.singletonList(updatedMetric), updatedMetric.getLastUpdated(), false);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         } finally {
-//            this.lastWrittenQueryMetricCache.put(queryId, updatedMetric);
+            this.lastWrittenQueryMetricCache.put(queryId, updatedMetric);
         }
     }
     

@@ -41,6 +41,17 @@ public class QueryMetricOperations {
     public String update(@RequestBody Collection<QueryMetric> queryMetrics) {
         System.out.println(queryMetrics.toString());
         
+        StringBuilder sb = new StringBuilder();
+        
+        QueryMetric metric = handler.getQueryMetric("0000-1111-2222-3333");
+        sb.append("from STQMH before: ").append(metric).append("\n");
+        
+        metric = this.lastWrittenQueryMetricCache.get("0000-1111-2222-3333", QueryMetric.class);
+        sb.append("from lastWrittenQueryMetricCache before: ").append(metric).append("\n");
+        
+        metric = this.incomingQueryMetrics.get("0000-1111-2222-3333", QueryMetric.class);
+        sb.append("from incomingQueryMetrics before: ").append(metric).append("\n");
+        
         queryMetrics.forEach(m -> {
             try {
                 if (isHazelCast) {
@@ -54,13 +65,20 @@ public class QueryMetricOperations {
                     handler.writeMetric(m, Collections.singletonList(m), m.getLastUpdated(), false);
                     this.lastWrittenQueryMetricCache.put(m.getQueryId(), m);
                 }
-
-                QueryMetric metric = handler.getQueryMetric("0000-1111-2222-3333");
-
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
             }
         });
-        return queryMetrics.toString();
+        
+        metric = handler.getQueryMetric("0000-1111-2222-3333");
+        sb.append("from STQMH after: ").append(metric).append("\n");
+        
+        metric = this.lastWrittenQueryMetricCache.get("0000-1111-2222-3333", QueryMetric.class);
+        sb.append("from lastWrittenQueryMetricCache after: ").append(metric).append("\n");
+        
+        metric = this.incomingQueryMetrics.get("0000-1111-2222-3333", QueryMetric.class);
+        sb.append("from incomingQueryMetrics after: ").append(metric).append("\n");
+        
+        return sb.toString();
     }
 }

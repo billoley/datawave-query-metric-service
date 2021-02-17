@@ -96,7 +96,7 @@ hazelcast:
           <eviction-policy>LFU</eviction-policy>
           <map-store enabled="true" initial-mode="LAZY">
             <factory-class-name>datawave.microservice.querymetrics.peristence.AccumuloMapStore</factory-class-name>
-            <write-delay-seconds>0</write-delay-seconds>
+            <write-delay-seconds>5</write-delay-seconds>
             <write-batch-size>1000</write-batch-size>
           </map-store>
         </map>
