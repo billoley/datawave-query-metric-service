@@ -1,5 +1,6 @@
 package datawave.microservice.querymetrics;
 
+import com.hazelcast.core.IMap;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.microservice.querymetrics.handler.ShardTableQueryMetricHandler;
 import datawave.webservice.query.metric.BaseQueryMetric;
@@ -26,12 +27,12 @@ public class QueryMetricOperations {
     private ShardTableQueryMetricHandler handler;
     private Cache incomingQueryMetrics;
     private Cache lastWrittenQueryMetricCache;
-    private boolean isHazelCast = false;
+    private boolean isHazelCast;
     
     @Autowired
     public QueryMetricOperations(CacheManager cacheManager, ShardTableQueryMetricHandler handler) {
         this.handler = handler;
-        isHazelCast = cacheManager instanceof HazelcastCacheManager;
+        this.isHazelCast = cacheManager instanceof HazelcastCacheManager;
         this.incomingQueryMetrics = cacheManager.getCache("incomingQueryMetrics");
         this.lastWrittenQueryMetricCache = cacheManager.getCache("lastWrittenQueryMetrics");
     }
@@ -39,11 +40,10 @@ public class QueryMetricOperations {
     @RequestMapping(path = "/update", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public String update(@RequestBody Collection<BaseQueryMetric> queryMetrics) {
-        System.out.println(queryMetrics.toString());
-        
+
         queryMetrics.forEach(m -> {
             try {
-                if (isHazelCast) {
+                if (this.isHazelCast) {
                     this.incomingQueryMetrics.put(m.getQueryId(), m);
                 } else {
                     BaseQueryMetric lastQueryMetric = lastWrittenQueryMetricCache.get(m.getQueryId(), BaseQueryMetric.class);

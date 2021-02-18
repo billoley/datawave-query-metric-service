@@ -24,7 +24,6 @@ public class AccumuloMapLoader<T extends BaseQueryMetric> implements MapLoader<S
     protected ShardTableQueryMetricHandler<T> handler;
     
     public static class Factory implements MapStoreFactory<String,BaseQueryMetric> {
-        
         @Override
         public MapLoader<String,BaseQueryMetric> newMapStore(String mapName, Properties properties) {
             return AccumuloMapLoader.instance;

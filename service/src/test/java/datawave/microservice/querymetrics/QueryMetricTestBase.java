@@ -4,16 +4,30 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import datawave.microservice.authorization.preauth.ProxiedEntityX509Filter;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
+import datawave.microservice.querymetrics.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetrics.handler.ShardTableQueryMetricHandler;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.JWTTokenHandler;
 import datawave.security.authorization.SubjectIssuerDNPair;
+import datawave.webservice.query.metric.BaseQueryMetric;
 import datawave.webservice.query.metric.QueryMetric;
+import org.apache.accumulo.core.client.BatchDeleter;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.time.DateUtils;
+import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.cache.Cache;
@@ -23,17 +37,21 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import static datawave.security.authorization.DatawaveUser.UserType.USER;
 
 public class QueryMetricTestBase {
-
+    
     protected Logger log = LoggerFactory.getLogger(getClass());
-
+    
     protected static final SubjectIssuerDNPair ALLOWED_CALLER = SubjectIssuerDNPair
                     .of("cn=test.testcorp.com, ou=microservices, ou=development, o=testcorp, c=us", "cn=testcorp ca, ou=security, o=testcorp, c=us");
     
@@ -53,7 +71,13 @@ public class QueryMetricTestBase {
     
     @Autowired
     protected CacheManager cacheManager;
-    
+
+    @Autowired
+    protected @Qualifier("warehouse") Connector connector;
+
+    @Autowired
+    protected QueryMetricHandlerProperties queryMetricHandlerProperties;
+
     protected Cache incomingQueryMetricsCache;
     protected Cache lastWrittenQueryMetricCache;
     
@@ -62,27 +86,35 @@ public class QueryMetricTestBase {
     
     protected RestTemplate restTemplate;
     protected ProxiedUserDetails allowedCaller;
-    
+
     @Before
     public void setup() {
         this.restTemplate = restTemplateBuilder.build(RestTemplate.class);
-        DatawaveUser allowedDWUser = new DatawaveUser(ALLOWED_CALLER, USER, null, null, null, null, System.currentTimeMillis());
+        Collection<String> auths = Arrays.asList("PUBLIC", "A", "B", "C");
+        DatawaveUser allowedDWUser = new DatawaveUser(ALLOWED_CALLER, USER, null, auths, null, null, System.currentTimeMillis());
         this.allowedCaller = new ProxiedUserDetails(Collections.singleton(allowedDWUser), allowedDWUser.getCreationTime());
         this.incomingQueryMetricsCache = cacheManager.getCache("incomingQueryMetrics");
         this.lastWrittenQueryMetricCache = cacheManager.getCache("lastWrittenQueryMetrics");
     }
-    
+
+    @After
+    public void cleanup() {
+        deleteAllAccumuloEntries();
+        this.incomingQueryMetricsCache.clear();
+        this.lastWrittenQueryMetricCache.clear();
+    }
+
+    protected QueryMetric createMetric() {
+        return createMetric(createQueryId());
+    }
+
     protected QueryMetric createMetric(String queryId) {
         long now = System.currentTimeMillis();
         QueryMetric m = new QueryMetric();
         Date nowDate = new Date(now);
-        Map<String,String> markings = new HashMap<String,String>() {
-            {
-                put("AUTHS", "A,B,C");
-            }
-        };
+//        Map<String,String> markings = new HashMap<>();
         m.setQueryId(queryId);
-        m.setMarkings(markings);
+//        m.setMarkings(markings);
         m.setEndDate(nowDate);
         m.setBeginDate(DateUtils.addDays(nowDate, -1));
         m.setLastUpdated(nowDate);
@@ -90,6 +122,18 @@ public class QueryMetricTestBase {
         m.setQueryLogic("QueryMetricsQuery");
         m.setHost("localhost");
         return m;
+    }
+
+    protected String createQueryId() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(RandomStringUtils.randomNumeric(4));
+        sb.append("-");
+        sb.append(RandomStringUtils.randomNumeric(4));
+        sb.append("-");
+        sb.append(RandomStringUtils.randomNumeric(4));
+        sb.append("-");
+        sb.append(RandomStringUtils.randomNumeric(4));
+        return sb.toString();
     }
     
     protected HttpEntity createRequestEntity(ProxiedUserDetails trustedUser, ProxiedUserDetails jwtUser, Object body) throws JsonProcessingException {
@@ -106,5 +150,128 @@ public class QueryMetricTestBase {
         headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
         
         return new HttpEntity<>(objectMapper.writeValueAsString(body), headers);
+    }
+
+    protected void assertEquals(BaseQueryMetric m1, BaseQueryMetric m2) {
+        assertEquals("", m1, m2);
+    }
+
+    /*
+     * This method compares the fields of BaseQueryMetric one by one so that the discrepancy is obvious
+     * It also rounds all Date objects to
+     */
+    protected void assertEquals(String message, BaseQueryMetric m1, BaseQueryMetric m2) {
+        if (null == m2) {
+            return;
+        } else if (m1 == m2) {
+            return;
+        } else {
+            if (message == null || message.isEmpty()) {
+                message = "";
+            } else {
+                message = message + ": ";
+            }
+            Assert.assertTrue(message + "queryId", assertObjectsEqual(m1.getQueryId(), m2.getQueryId()));
+            Assert.assertTrue(message + "queryType", assertObjectsEqual(m1.getQueryType(), m2.getQueryType()));
+            Assert.assertTrue(message + "queryAuthorizations", assertObjectsEqual(m1.getQueryAuthorizations(), m2.getQueryAuthorizations()));
+            Assert.assertTrue(message + "columnVisibility", assertObjectsEqual(m1.getColumnVisibility(), m2.getColumnVisibility()));
+            Assert.assertTrue(message + "beginDate", assertObjectsEqual(m1.getBeginDate(), m2.getBeginDate()));
+            Assert.assertTrue(message + "endDate", assertObjectsEqual(m1.getEndDate(), m2.getEndDate()));
+            Assert.assertEquals(message + "createDate", m1.getCreateDate(), m2.getCreateDate());
+            Assert.assertEquals(message + "setupTime", m1.getSetupTime(), m2.getSetupTime());
+            Assert.assertEquals(message + "createCallTime", m1.getCreateCallTime(), m2.getCreateCallTime());
+            Assert.assertTrue(message + "user", assertObjectsEqual(m1.getUser(), m2.getUser()));
+            Assert.assertTrue(message + "userDN", assertObjectsEqual(m1.getUserDN(), m2.getUserDN()));
+            Assert.assertTrue(message + "query", assertObjectsEqual(m1.getQuery(), m2.getQuery()));
+            Assert.assertTrue(message + "queryLogic", assertObjectsEqual(m1.getQueryLogic(), m2.getQueryLogic()));
+            Assert.assertTrue(message + "queryName", assertObjectsEqual(m1.getQueryName(), m2.getQueryName()));
+            Assert.assertTrue(message + "parameters", assertObjectsEqual(m1.getParameters(), m2.getParameters()));
+            Assert.assertTrue(message + "host", assertObjectsEqual(m1.getHost(), m2.getHost()));
+            Assert.assertTrue(message + "pageTimes", assertObjectsEqual(m1.getPageTimes(), m2.getPageTimes()));
+            Assert.assertTrue(message + "proxyServers", assertObjectsEqual(m1.getProxyServers(), m2.getProxyServers()));
+            Assert.assertTrue(message + "lifecycle", assertObjectsEqual(m1.getLifecycle(), m2.getLifecycle()));
+            Assert.assertTrue(message + "errorMessage", assertObjectsEqual(m1.getErrorMessage(), m2.getErrorMessage()));
+            Assert.assertTrue(message + "errorCode", assertObjectsEqual(m1.getErrorCode(), m2.getErrorCode()));
+            Assert.assertEquals(message + "sourceCount", m1.getSourceCount(), m2.getSourceCount());
+            Assert.assertEquals(message + "nextCount", m1.getNextCount(), m2.getNextCount());
+            Assert.assertEquals(message + "seekCount", m1.getSeekCount(), m2.getSeekCount());
+            Assert.assertEquals(message + "yieldCount", m1.getYieldCount(), m2.getYieldCount());
+            Assert.assertEquals(message + "docRanges", m1.getDocRanges(), m2.getDocRanges());
+            Assert.assertEquals(message + "fiRanges", m1.getFiRanges(), m2.getFiRanges());
+            Assert.assertTrue(message + "plan", assertObjectsEqual(m1.getPlan(), m2.getPlan()));
+            Assert.assertEquals(message + "loginTime", m1.getLoginTime(), m2.getLoginTime());
+            Assert.assertTrue(message + "prdictions", assertObjectsEqual(m1.getPredictions(), m2.getPredictions()));
+        }
+    }
+
+    protected boolean assertObjectsEqual(Object o1, Object o2) {
+        if (o1 == null && o2 == null) {
+            return true;
+        } else if (o1 == null && o2 != null) {
+            return false;
+        } else if (o1 != null && o2 == null) {
+            return false;
+        } else if (o1.getClass() != o2.getClass()) {
+            return false;
+        }
+        else if (o1 instanceof Date) {
+            long t1 = ((((Date) o1).getTime()) / 1000) * 1000;
+            long t2 = ((((Date) o2).getTime()) / 1000) * 1000;
+            return t1 == t2;
+        }
+        else {
+            return o1.equals(o2);
+        }
+    }
+
+    protected Collection<String> getAllAccumuloEntries() {
+        List<String> entries = new ArrayList<>();
+        List<String> tables = new ArrayList<>();
+        tables.add(queryMetricHandlerProperties.getShardTableName());
+        tables.add(queryMetricHandlerProperties.getIndexTableName());
+        tables.add(queryMetricHandlerProperties.getReverseIndexTableName());
+        tables.add(queryMetricHandlerProperties.getMetadataTableName());
+        try {
+            tables.forEach(t -> {
+                Authorizations auths = new Authorizations("PUBLIC");
+                try (BatchScanner bs = this.connector.createBatchScanner(t, auths, 1)) {
+                    bs.setRanges(Collections.singletonList(new Range()));
+                    final Iterator<Map.Entry<Key,Value>> itr = bs.iterator();
+                    while (itr.hasNext()) {
+                        entries.add(t + " -> " + itr.next().getKey());
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return entries;
+    }
+
+    protected void printAllAccumuloEntries() {
+        getAllAccumuloEntries().forEach(s -> System.out.println(s));
+    }
+
+    protected void deleteAllAccumuloEntries() {
+        List<String> tables = new ArrayList<>();
+        tables.add(queryMetricHandlerProperties.getShardTableName());
+        tables.add(queryMetricHandlerProperties.getIndexTableName());
+        tables.add(queryMetricHandlerProperties.getReverseIndexTableName());
+        tables.add(queryMetricHandlerProperties.getMetadataTableName());
+        try {
+            tables.forEach(t -> {
+                Authorizations auths = new Authorizations("PUBLIC");
+                try (BatchDeleter bd = this.connector.createBatchDeleter(t, auths, 1, new BatchWriterConfig())) {
+                    bd.setRanges(Collections.singletonList(new Range()));
+                    bd.delete();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

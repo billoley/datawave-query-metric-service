@@ -17,7 +17,6 @@ import datawave.query.util.MetadataHelperFactory;
 import datawave.webservice.query.cache.QueryMetricFactory;
 import datawave.webservice.query.cache.QueryMetricFactoryImpl;
 import datawave.webservice.query.metric.BaseQueryMetric;
-import datawave.webservice.query.metric.QueryMetric;
 import datawave.webservice.query.result.event.DefaultResponseObjectFactory;
 import datawave.webservice.query.result.event.ResponseObjectFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -33,12 +32,13 @@ import static datawave.marking.MarkingFunctions.Factory.log;
 public class QueryMetricConfiguration {
     
     @Bean
-    public ObjectMapper objectMapper() {
+    public ObjectMapper objectMapper(QueryMetricFactory metricFactory) {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        SimpleModule module = new SimpleModule(QueryMetric.class.getName());
-        module.addAbstractTypeMapping(BaseQueryMetric.class, QueryMetric.class);
+        Class metricClass = metricFactory.createMetric().getClass();
+        SimpleModule module = new SimpleModule(metricClass.getName());
+        module.addDeserializer(BaseQueryMetric.class, new BaseQueryMetricDeserializer(metricClass));
         mapper.registerModule(module);
         mapper.registerModule(new GuavaModule());
         mapper.registerModule(new JaxbAnnotationModule());

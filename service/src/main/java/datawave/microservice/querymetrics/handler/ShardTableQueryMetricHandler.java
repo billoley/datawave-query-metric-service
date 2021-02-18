@@ -116,13 +116,15 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
     private QueryMetricQueryLogicFactory logicFactory;
     private QueryMetricFactory metricFactory;
     private UIDBuilder<UID> uidBuilder = UID.builder();
+    private DatawavePrincipal datawavePrincipal;
     
     @Autowired
     public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("warehouse") Connector connector,
-                    QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory queryMetricFactory) {
+                    QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory) {
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.connector = connector;
         this.logicFactory = logicFactory;
+        this.metricFactory = metricFactory;
         queryMetricHandlerProperties.getProperties().entrySet().forEach(e -> conf.set(e.getKey(), e.getValue()));
         
         try {
@@ -134,6 +136,14 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
         } catch (Exception e) {
             log.error("Error setting connection factory", e);
         }
+        Collection<String> auths = new ArrayList<>();
+        if (connectorAuthorizations != null) {
+            Arrays.stream(StringUtils.split(connectorAuthorizations, ',')).forEach(a -> {
+                auths.add(a);
+            });
+        }
+        DatawaveUser datawaveUser = new DatawaveUser(SubjectIssuerDNPair.of("admin"), USER, null, auths, null, null, System.currentTimeMillis());
+        datawavePrincipal = new DatawavePrincipal(Collections.singletonList(datawaveUser));
     }
     
     @Override
@@ -332,10 +342,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
         query.setQuery("QUERY_ID == '" + queryId + "'");
         query.setQueryName(QUERY_METRICS_LOGIC_NAME);
         query.setColumnVisibility(queryMetricHandlerProperties.getVisibilityString());
-        query.setQueryAuthorizations("PUBLIC");
-        // if (updatedQueryMetric.getUserDN() != null) {
-        // query.setUserDN(updatedQueryMetric.getUserDN());
-        // }
+        query.setQueryAuthorizations(this.connectorAuthorizations);
         query.setExpirationDate(DateUtils.addDays(new Date(), 1));
         query.setPagesize(1000);
         query.setId(UUID.randomUUID());
@@ -343,17 +350,12 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
         return getQueryMetrics(null, query);
     }
     
-    private List<T> getQueryMetrics(BaseResponse response, Query query/* , DatawavePrincipal datawavePrincipal */) {
+    private List<T> getQueryMetrics(BaseResponse response, Query query) {
         List<T> queryMetrics = new ArrayList<>();
         RunningQuery runningQuery;
         
         try {
             QueryLogic<?> queryLogic = logicFactory.getObject();
-            
-            // FIXME
-            Collection<String> auths = Collections.singletonList("PUBLIC");
-            DatawaveUser datawaveUser = new DatawaveUser(SubjectIssuerDNPair.of("admin"), USER, null, auths, null, null, System.currentTimeMillis());
-            DatawavePrincipal datawavePrincipal = new DatawavePrincipal(Collections.singletonList(datawaveUser));
             
             runningQuery = new RunningQuery(null, connector, Priority.ADMIN, queryLogic, query, query.getQueryAuthorizations(), datawavePrincipal,
                             metricFactory);
@@ -400,136 +402,10 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
             if (response != null) {
                 response.addExceptions(new QueryException(e).getQueryExceptionsInStack());
             }
-        } finally {
-            // if (null != this.connectionFactory) {
-            // if (null != runningQuery && null != connector) {
-            // try {
-            // runningQuery.closeConnection(this.connectionFactory);
-            // } catch (Exception e) {
-            // log.warn("Could not return connector to factory", e);
-            // }
-            // } else if (null != connector) {
-            // try {
-            // this.connectionFactory.returnConnection(connector);
-            // } catch (Exception e) {
-            // log.warn("Could not return connector to factory", e);
-            // }
-            // }
-            // }
         }
-        
         return queryMetrics;
     }
-    
-    // @Override
-    // public QueryMetricListResponse query(String user, String queryId, DatawavePrincipal datawavePrincipal) {
-    // QueryMetricsDetailListResponse response = new QueryMetricsDetailListResponse();
-    //
-    // try {
-    // enableLogs(false);
-    //
-    // Collection<? extends Collection<String>> authorizations = datawavePrincipal.getAuthorizations();
-    // Date end = new Date();
-    // Date begin = DateUtils.setYears(end, 2000);
-    //
-    // QueryImpl query = new QueryImpl();
-    // query.setBeginDate(begin);
-    // query.setEndDate(end);
-    // query.setQueryLogicName(QUERY_METRICS_LOGIC_NAME);
-    // // QueryMetricQueryLogic now enforces that you must be a QueryMetricsAdministrator to query metrics that do not belong to you
-    // query.setQuery("QUERY_ID == '" + queryId + "'");
-    // query.setQueryName(QUERY_METRICS_LOGIC_NAME);
-    // query.setColumnVisibility(visibilityString);
-    // query.setQueryAuthorizations(AuthorizationsUtil.buildAuthorizationString(authorizations));
-    // query.setExpirationDate(DateUtils.addDays(new Date(), 1));
-    // query.setPagesize(1000);
-    // query.setUserDN(datawavePrincipal.getShortName());
-    // query.setOwner(datawavePrincipal.getShortName());
-    // query.setId(UUID.randomUUID());
-    // query.setParameters(ImmutableMap.of(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true"));
-    // List<QueryMetric> queryMetrics = getQueryMetrics(response, query, datawavePrincipal);
-    //
-    // response.setResult(queryMetrics);
-    //
-    // response.setGeoQuery(queryMetrics.stream().anyMatch(SimpleQueryGeometryHandler::isGeoQuery));
-    // } finally {
-    // enableLogs(true);
-    // }
-    //
-    // return response;
-    // }
-    //
-    // @Override
-    // public QueryMetricsSummaryResponse getTotalQueriesSummaryCounts(Date begin, Date end, DatawavePrincipal datawavePrincipal) {
-    // QueryMetricsSummaryResponse response = new QueryMetricsSummaryResponse();
-    //
-    // try {
-    // enableLogs(false);
-    // // this method is open to any user
-    // datawavePrincipal = callerPrincipal;
-    //
-    // Collection<? extends Collection<String>> authorizations = datawavePrincipal.getAuthorizations();
-    // QueryImpl query = new QueryImpl();
-    // query.setBeginDate(begin);
-    // query.setEndDate(end);
-    // query.setQueryLogicName(QUERY_METRICS_LOGIC_NAME);
-    // query.setQuery("USER > 'A' && USER < 'ZZZZZZZ'");
-    // query.setQueryName(QUERY_METRICS_LOGIC_NAME);
-    // query.setColumnVisibility(visibilityString);
-    // query.setQueryAuthorizations(AuthorizationsUtil.buildAuthorizationString(authorizations));
-    // query.setExpirationDate(DateUtils.addDays(new Date(), 1));
-    // query.setPagesize(1000);
-    // query.setUserDN(datawavePrincipal.getShortName());
-    // query.setId(UUID.randomUUID());
-    // query.setParameters(ImmutableMap.of(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true"));
-    //
-    // List<QueryMetric> queryMetrics = getQueryMetrics(response, query, datawavePrincipal);
-    // response = processQueryMetricsSummary(queryMetrics);
-    // } catch (IOException e) {
-    // log.error(e.getMessage(), e);
-    // } finally {
-    // enableLogs(true);
-    // }
-    //
-    // return response;
-    // }
-    //
-    // @Override
-    // public QueryMetricsSummaryHtmlResponse getUserQueriesSummary(Date begin, Date end, DatawavePrincipal datawavePrincipal) {
-    // QueryMetricsSummaryHtmlResponse response = new QueryMetricsSummaryHtmlResponse();
-    //
-    // try {
-    // String user = datawavePrincipal.getShortName();
-    // enableLogs(false);
-    // // this method is open to any user
-    // datawavePrincipal = callerPrincipal;
-    //
-    // Collection<? extends Collection<String>> authorizations = datawavePrincipal.getAuthorizations();
-    // QueryImpl query = new QueryImpl();
-    // query.setBeginDate(begin);
-    // query.setEndDate(end);
-    // query.setQueryLogicName(QUERY_METRICS_LOGIC_NAME);
-    // query.setQuery("USER == '" + user + "'");
-    // query.setQueryName(QUERY_METRICS_LOGIC_NAME);
-    // query.setColumnVisibility(visibilityString);
-    // query.setQueryAuthorizations(AuthorizationsUtil.buildAuthorizationString(authorizations));
-    // query.setExpirationDate(DateUtils.addDays(new Date(), 1));
-    // query.setPagesize(1000);
-    // query.setUserDN(datawavePrincipal.getShortName());
-    // query.setId(UUID.randomUUID());
-    // query.setParameters(ImmutableMap.of(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true"));
-    //
-    // List<QueryMetric> queryMetrics = getQueryMetrics(response, query, datawavePrincipal);
-    // response = processQueryMetricsHtmlSummary(queryMetrics);
-    // } catch (IOException e) {
-    // log.error(e.getMessage(), e);
-    // } finally {
-    // enableLogs(true);
-    // }
-    //
-    // return response;
-    // }
-    //
+
     public T toMetric(datawave.webservice.query.result.event.EventBase event) {
         SimpleDateFormat sdf_date_time1 = new SimpleDateFormat("yyyyMMdd HHmmss");
         SimpleDateFormat sdf_date_time2 = new SimpleDateFormat("yyyyMMdd HHmmss");

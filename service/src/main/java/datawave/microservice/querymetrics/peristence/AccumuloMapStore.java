@@ -20,14 +20,14 @@ import java.util.Properties;
 
 @Component
 @Qualifier("store")
-public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoader<T> implements MapStore<String,T> {
+public class AccumuloMapStore<T extends BaseQueryMetric> implements MapStore<String,T> {
     
     private static AccumuloMapStore instance;
     private Logger log = LoggerFactory.getLogger(getClass());
     private Cache lastWrittenQueryMetricCache;
+    private ShardTableQueryMetricHandler<T> handler;
     
     public static class Factory implements MapStoreFactory<String,BaseQueryMetric> {
-        
         @Override
         public MapLoader<String,BaseQueryMetric> newMapStore(String mapName, Properties properties) {
             return AccumuloMapStore.instance;
@@ -36,7 +36,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     
     @Autowired
     public AccumuloMapStore(ShardTableQueryMetricHandler handler) {
-        super(handler);
+        this.handler = handler;
         AccumuloMapStore.instance = this;
     }
     
@@ -79,5 +79,17 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     @Override
     public void deleteAll(Collection<String> keys) {
         // not implemented
+    }
+
+    @Override public Iterable<String> loadAllKeys() {
+        return Collections.emptyList();
+    }
+
+    @Override public Map<String,T> loadAll(Collection<String> keys) {
+        return Collections.emptyMap();
+    }
+
+    @Override public T load(String key) {
+        return null;
     }
 }

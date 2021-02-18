@@ -6,6 +6,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.security.Authorizations;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.cache.CacheType;
@@ -39,6 +40,8 @@ public class QueryMetricTestConfiguration {
     @Lazy
     @Qualifier("warehouse")
     public Connector memoryWarehouseConnector(@Qualifier("warehouse") Instance instance) throws AccumuloSecurityException, AccumuloException {
-        return instance.getConnector(USER, new PasswordToken(""));
+        Connector connector = instance.getConnector(USER, new PasswordToken(""));
+        connector.securityOperations().changeUserAuthorizations(connector.whoami(), new Authorizations("PUBLIC", "A", "B", "C"));
+        return connector;
     }
 }
