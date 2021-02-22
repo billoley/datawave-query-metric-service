@@ -35,11 +35,11 @@ public class AccumuloMapLoader<T extends BaseQueryMetric> implements MapLoader<S
         this.handler = handler;
         AccumuloMapLoader.instance = this;
     }
-
+    
     public static AccumuloMapLoader getInstance() {
         return instance;
     }
-
+    
     @Override
     public T load(String s) {
         return this.handler.getQueryMetric(s);

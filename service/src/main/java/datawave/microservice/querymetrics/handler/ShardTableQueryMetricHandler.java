@@ -12,18 +12,19 @@ import datawave.ingest.data.TypeRegistry;
 import datawave.ingest.data.config.NormalizedContentInterface;
 import datawave.ingest.data.config.ingest.AbstractContentIngestHelper;
 import datawave.ingest.mapreduce.handler.shard.AbstractColumnBasedHandler;
+import datawave.ingest.mapreduce.handler.tokenize.ContentIndexingColumnBasedHandler;
 import datawave.ingest.mapreduce.job.BulkIngestKey;
 import datawave.ingest.mapreduce.job.writer.LiveContextWriter;
 import datawave.ingest.table.config.TableConfigHelper;
 import datawave.microservice.querymetrics.config.QueryMetricHandlerProperties;
+import datawave.microservice.querymetrics.logging.ThreadLocalLogLevel;
 import datawave.microservice.querymetrics.logic.QueryMetricQueryLogicFactory;
 import datawave.query.iterator.QueryOptions;
 import datawave.security.authorization.DatawavePrincipal;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.SubjectIssuerDNPair;
 import datawave.webservice.common.connection.AccumuloConnectionFactory.Priority;
-import datawave.webservice.common.logging.ThreadConfigurableLogger;
-import datawave.webservice.common.logging.ThreadLocalLogLevel;
+import datawave.microservice.querymetrics.logging.ThreadConfigurableLogger;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.QueryImpl;
 import datawave.webservice.query.cache.QueryMetricFactory;
@@ -43,13 +44,16 @@ import datawave.webservice.result.BaseResponse;
 import datawave.webservice.result.EventQueryResponseBase;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
@@ -62,8 +66,8 @@ import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.TaskID;
 import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.mapreduce.task.MapContextImpl;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.event.Level;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Lazy;
@@ -79,6 +83,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -131,10 +136,11 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
             connectorAuthorizations = connector.securityOperations().getUserAuthorizations(connector.whoami()).toString();
             reload();
             
-            if (tablesChecked.compareAndSet(false, true))
+            if (tablesChecked.compareAndSet(false, true)) {
                 verifyTables();
+            }
         } catch (Exception e) {
-            log.error("Error setting connection factory", e);
+            log.error(e.getMessage(), e);
         }
         Collection<String> auths = new ArrayList<>();
         if (connectorAuthorizations != null) {
@@ -157,9 +163,14 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
         this.recordWriter.flush();
     }
     
-    private void verifyTables() {
+    public void verifyTables() {
         try {
-            AbstractColumnBasedHandler<Key> handler = new ContentQueryMetricsHandler<>();
+            AbstractColumnBasedHandler<Key> handler = new ContentIndexingColumnBasedHandler() {
+                @Override
+                public AbstractContentIngestHelper getContentIndexingDataTypeHelper() {
+                    return (ContentQueryMetricsIngestHelper) helper;
+                }
+            };
             createAndConfigureTablesIfNecessary(handler.getTableNames(conf), connector.tableOperations(), conf);
         } catch (Exception e) {
             log.error("Error verifying table configuration", e);
@@ -179,7 +190,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
             context = new MapContextImpl<>(conf, taskId, null, recordWriter, null, reporter, null);
             
             for (T storedQueryMetric : storedQueryMetrics) {
-                AbstractColumnBasedHandler<Key> handler = new ContentQueryMetricsHandler() {
+                AbstractColumnBasedHandler<Key> handler = new ContentIndexingColumnBasedHandler() {
                     @Override
                     public AbstractContentIngestHelper getContentIndexingDataTypeHelper() {
                         return (ContentQueryMetricsIngestHelper) helper;
@@ -188,19 +199,35 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
                 handler.setup(context);
                 
                 Multimap<BulkIngestKey,Value> r = getEntries(handler, updatedQueryMetric, storedQueryMetric, lastUpdated, delete);
-                
+
+                r.entries().stream().forEach(e -> {
+                    System.out.println("writing key: " + e.getKey().toString());
+                });
+
                 try {
                     if (r != null) {
                         contextWriter.write(r, context);
                     }
                     
                     if (handler.getMetadata() != null) {
+                        Multimap<BulkIngestKey,Value> metadata = handler.getMetadata().getBulkMetadata();
+                        metadata.entries().stream().forEach(e -> {
+                            System.out.println("writing key: " + e.getKey().toString());
+                        });
                         contextWriter.write(handler.getMetadata().getBulkMetadata(), context);
+                    } else {
+                        System.out.println("metadata is null");
                     }
+                } catch (Exception e) {
+                    System.out.println(e.getMessage());
+                    throw e;
                 } finally {
                     contextWriter.commit(context);
                 }
             }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            throw e;
         } finally {
             if (contextWriter != null && context != null) {
                 contextWriter.cleanup(context);
@@ -328,7 +355,10 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
     }
     
     public T getQueryMetric(final String queryId) {
+        org.apache.log4j.Logger.getRootLogger().setLevel(org.apache.log4j.Level.ALL);
+        enableLogs(true);
         List<T> queryMetrics = getQueryMetrics(queryId);
+        enableLogs(false);
         return queryMetrics.isEmpty() ? null : queryMetrics.get(0);
     }
     
@@ -398,6 +428,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
                 queryMetrics.add(metric);
             }
         } catch (Exception e) {
+            e.printStackTrace();
             log.error(e.getMessage(), e);
             if (response != null) {
                 response.addExceptions(new QueryException(e).getQueryExceptionsInStack());
@@ -615,7 +646,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
                     tableHelper = tableHelperClass.getDeclaredConstructor().newInstance();
                     
                     if (tableHelper != null)
-                        tableHelper.setup(table, conf, log);
+                        tableHelper.setup(table, conf, ThreadConfigurableLogger.getLog4jLogger(log.getName()));
                 } catch (Exception e) {
                     throw new IllegalArgumentException(e);
                 }
@@ -637,25 +668,26 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
             // Logger log = Logger.getLogger(MyClass.class);
             // to
             // Logger log = ThreadConfigurableLogger.getLogger(MyClass.class);
-            
-            ThreadLocalLogLevel.setLevel("datawave.query.index.lookup.RangeStream", Level.ERROR);
-            ThreadLocalLogLevel.setLevel("datawave.query.metrics.ShardTableQueryMetricHandler", Level.ERROR);
-            ThreadLocalLogLevel.setLevel("datawave.query.planner.DefaultQueryPlanner", Level.ERROR);
-            ThreadLocalLogLevel.setLevel("datawave.query.planner.ThreadedRangeBundlerIterator", Level.ERROR);
-            ThreadLocalLogLevel.setLevel("datawave.query.scheduler.SequentialScheduler", Level.ERROR);
-            ThreadLocalLogLevel.setLevel("datawave.query.tables.ShardQueryLogic", Level.ERROR);
-            ThreadLocalLogLevel.setLevel("datawave.query.metrics.ShardTableQueryMetricHandler", Level.ERROR);
-            ThreadLocalLogLevel.setLevel("datawave.query.jexl.visitors.QueryModelVisitor", Level.ERROR);
-            ThreadLocalLogLevel.setLevel("datawave.query.jexl.visitors.ExpandMultiNormalizedTerms", Level.ERROR);
-            ThreadLocalLogLevel.setLevel("datawave.query.jexl.lookups.LookupBoundedRangeForTerms", Level.ERROR);
-            ThreadLocalLogLevel.setLevel("datawave.query.jexl.visitors.RangeConjunctionRebuildingVisitor", Level.ERROR);
-            
-            ThreadLocalLogLevel.setLevel("datawave.ingest.data.TypeRegistry", Level.ERROR);
-            ThreadLocalLogLevel.setLevel("datawave.ingest.data.config.ingest.BaseIngestHelper", Level.ERROR);
-            ThreadLocalLogLevel.setLevel("datawave.ingest.mapreduce.handler.shard.AbstractColumnBasedHandler", Level.ERROR);
-            ThreadLocalLogLevel.setLevel("datawave.ingest.mapreduce.handler.shard.ShardedDataTypeHandler", Level.ERROR);
-            ThreadLocalLogLevel.setLevel("datawave.ingest.util.RegionTimer", Level.ERROR);
-            ThreadLocalLogLevel.setLevel("datawave.ingest.data.Event", Level.OFF);
+
+//            ThreadLocalLogLevel.setLevel("ROOT", Level.ERROR);
+//            ThreadLocalLogLevel.setLevel("datawave.query.index.lookup.RangeStream", Level.ERROR);
+//            ThreadLocalLogLevel.setLevel("datawave.query.metrics.ShardTableQueryMetricHandler", Level.ERROR);
+//            ThreadLocalLogLevel.setLevel("datawave.query.planner.DefaultQueryPlanner", Level.ERROR);
+//            ThreadLocalLogLevel.setLevel("datawave.query.planner.ThreadedRangeBundlerIterator", Level.ERROR);
+//            ThreadLocalLogLevel.setLevel("datawave.query.scheduler.SequentialScheduler", Level.ERROR);
+//            ThreadLocalLogLevel.setLevel("datawave.query.tables.ShardQueryLogic", Level.ERROR);
+//            ThreadLocalLogLevel.setLevel("datawave.query.metrics.ShardTableQueryMetricHandler", Level.ERROR);
+//            ThreadLocalLogLevel.setLevel("datawave.query.jexl.visitors.QueryModelVisitor", Level.ERROR);
+//            ThreadLocalLogLevel.setLevel("datawave.query.jexl.visitors.ExpandMultiNormalizedTerms", Level.ERROR);
+//            ThreadLocalLogLevel.setLevel("datawave.query.jexl.lookups.LookupBoundedRangeForTerms", Level.ERROR);
+//            ThreadLocalLogLevel.setLevel("datawave.query.jexl.visitors.RangeConjunctionRebuildingVisitor", Level.ERROR);
+//
+//            ThreadLocalLogLevel.setLevel("datawave.ingest.data.TypeRegistry", Level.ERROR);
+//            ThreadLocalLogLevel.setLevel("datawave.ingest.data.config.ingest.BaseIngestHelper", Level.ERROR);
+//            ThreadLocalLogLevel.setLevel("datawave.ingest.mapreduce.handler.shard.AbstractColumnBasedHandler", Level.ERROR);
+//            ThreadLocalLogLevel.setLevel("datawave.ingest.mapreduce.handler.shard.ShardedDataTypeHandler", Level.ERROR);
+//            ThreadLocalLogLevel.setLevel("datawave.ingest.util.RegionTimer", Level.ERROR);
+//            ThreadLocalLogLevel.setLevel("datawave.ingest.data.Event", Level.TRACE);
         }
     }
     
@@ -671,5 +703,31 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
         } catch (AccumuloException | AccumuloSecurityException | IOException e) {
             log.error(e.getMessage(), e);
         }
+    }
+
+
+
+
+    protected Collection<String> getMetadataEntries() {
+        return getAccumuloEntries(queryMetricHandlerProperties.getMetadataTableName());
+    }
+
+    protected Collection<String> getAccumuloEntries(String table) {
+        List<String> entries = new ArrayList<>();
+        try {
+            Authorizations auths = new Authorizations("PUBLIC");
+            try (BatchScanner bs = this.connector.createBatchScanner(table, auths, 1)) {
+                bs.setRanges(Collections.singletonList(new Range()));
+                final Iterator<Entry<Key,Value>> itr = bs.iterator();
+                while (itr.hasNext()) {
+                    entries.add(table + " -> " + itr.next().getKey());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return entries;
     }
 }

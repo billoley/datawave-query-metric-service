@@ -13,21 +13,22 @@ import org.springframework.test.context.junit4.SpringRunner;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles({"http", "hazelcast-writebehind", "QueryMetricTest"})
 public class QueryMetricOperationsHazelcastWriteBehindTest extends QueryMetricOperationsTest {
-
+    
     @Test
     @Override
     public void MetricStoredCorrectlyInCachesAndAccumulo() {
         super.MetricStoredCorrectlyInCachesAndAccumulo();
     }
-
+    
     @Test
     @Override
     public void MultipleMetricsStoredCorrectlyInCachesAndAccumulo() {
         super.MultipleMetricsStoredCorrectlyInCachesAndAccumulo();
     }
-
+    
     @Test
-    @Override public void PageMetricTest() {
+    @Override
+    public void PageMetricTest() {
         super.PageMetricTest();
     }
 }

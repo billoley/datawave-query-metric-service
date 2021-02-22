@@ -2,6 +2,7 @@ package datawave.microservice.querymetrics.handler;
 
 import datawave.accumulo.inmemory.InMemoryInstance;
 import datawave.common.util.ArgumentChecker;
+import datawave.microservice.querymetrics.logging.ThreadConfigurableLogger;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -14,6 +15,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.impl.TabletServerBatchWriter;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TabletId;
@@ -23,8 +25,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -36,7 +38,7 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     private MultiTableBatchWriter mtbw = null;
     private HashMap<Text,BatchWriter> bws = null;
     private Text defaultTableName = null;
-    private Logger log = Logger.getLogger(AccumuloRecordWriter.class);
+    private ThreadConfigurableLogger log = ThreadConfigurableLogger.getLogger(AccumuloRecordWriter.class);
     
     private boolean simulate = false;
     private boolean createTables = false;
@@ -73,7 +75,8 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     public AccumuloRecordWriter(Connector connector, Configuration conf) throws AccumuloException, AccumuloSecurityException, IOException {
         Level l = getLogLevel(conf);
         if (l != null) {
-            log.setLevel(getLogLevel(conf));
+//            log.setLevel(getLogLevel(conf));
+            log.setLevel(Level.TRACE);
         }
         this.simulate = getSimulationMode(conf);
         this.createTables = canCreateTables(conf);
@@ -90,14 +93,6 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
         
         if (!simulate) {
             try {
-                // if (connectionFactory == null) {
-                // this.conn = getInstance(conf).getConnector(getUsername(conf), new PasswordToken(getPassword(conf)));
-                // } else {
-                // this.connFactory = connectionFactory;
-                // Map<String,String> trackingMap = connectionFactory.getTrackingMap(Thread.currentThread().getStackTrace());
-                // this.conn = connectionFactory.getConnection(Priority.ADMIN, trackingMap);
-                // }
-                mtbw = this.connector.createMultiTableBatchWriter(getMaxMutationBufferSize(conf), getMaxLatency(conf), getMaxWriteThreads(conf));
                 BatchWriterConfig bwConfig = new BatchWriterConfig();
                 bwConfig.setMaxMemory(getMaxMutationBufferSize(conf));
                 bwConfig.setMaxLatency(getMaxLatency(conf), TimeUnit.MILLISECONDS);
@@ -107,6 +102,7 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
                 log.error(e.getMessage(), e);
             }
         }
+        LoggerFactory.getLogger(TabletServerBatchWriter.class);
     }
     
     /**
@@ -135,13 +131,14 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
             try {
                 addTable(table);
             } catch (Exception e) {
-                log.error(e);
+                log.error(e.getMessage(), e);
                 throw new IOException(e);
             }
         }
         
         try {
             bws.get(table).addMutation(mutation);
+            System.out.println("addMutation table:" + table.toString() + " mutation:" + mutation);
         } catch (MutationsRejectedException e) {
             log.error("Mutation rejected with constraint violations: " + e.getConstraintViolationSummaries() + " row: " + mutation.getRow() + " updates: "
                             + mutation.getUpdates());
@@ -332,10 +329,30 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     }
     
     protected static Level getLogLevel(Configuration conf) {
+        Level level = Level.INFO;
         if (conf.get(LOGLEVEL) != null) {
-            return Level.toLevel(conf.getInt(LOGLEVEL, Level.INFO.toInt()));
+            int levelInt = conf.getInt(LOGLEVEL, Level.INFO.toInt());
+            switch (levelInt) {
+                case 0:
+                    level = Level.TRACE;
+                break;
+                case 10:
+                    level = Level.DEBUG;
+                break;
+                case 20:
+                    level = Level.INFO;
+                break;
+                case 30:
+                    level = Level.WARN;
+                break;
+                case 40:
+                    level = Level.ERROR;
+                break;
+                default:
+                    level = Level.INFO;
+            }
         }
-        return null;
+        return level;
     }
     
     protected static boolean getSimulationMode(Configuration conf) {
@@ -343,6 +360,15 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     }
     
     public void flush() throws Exception {
-        this.mtbw.flush();
+        bws.forEach((t, bw) -> {
+            System.out.println("flushing " + t.toString());
+            try {
+                bw.flush();
+            } catch (Exception e) {
+                e.printStackTrace();
+                log.error(e.getMessage(), e);
+            }
+        });
+//        this.mtbw.flush();
     }
 }

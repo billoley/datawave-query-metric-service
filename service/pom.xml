@@ -43,6 +43,12 @@
                 <groupId>gov.nsa.datawave</groupId>
                 <artifactId>datawave-ingest-core</artifactId>
                 <version>${version.datawave}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.jboss.logging</groupId>
+                        <artifactId>jboss-logging</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>gov.nsa.datawave</groupId>

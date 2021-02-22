@@ -36,8 +36,7 @@ public class HazelcastConfiguration {
     private String clusterName;
     
     @Bean
-    HazelcastInstance hazelcastInstance(Config config, @Qualifier("store") AccumuloMapStore mapStore,
-                    @Qualifier("loader") AccumuloMapLoader mapLoader) {
+    HazelcastInstance hazelcastInstance(Config config, @Qualifier("store") AccumuloMapStore mapStore, @Qualifier("loader") AccumuloMapLoader mapLoader) {
         HazelcastInstance instance = Hazelcast.newHazelcastInstance(config);
         try {
             HazelcastCacheManager cacheManager = new HazelcastCacheManager(instance);

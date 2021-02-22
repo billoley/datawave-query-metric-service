@@ -95,6 +95,26 @@ public class QueryMetricTestBase {
         this.allowedCaller = new ProxiedUserDetails(Collections.singleton(allowedDWUser), allowedDWUser.getCreationTime());
         this.incomingQueryMetricsCache = cacheManager.getCache("incomingQueryMetrics");
         this.lastWrittenQueryMetricCache = cacheManager.getCache("lastWrittenQueryMetrics");
+        this.shardTableQueryMetricHandler.verifyTables();
+        BaseQueryMetric m = createMetric();
+        try {
+            this.shardTableQueryMetricHandler.writeMetric(m, Collections.singletonList(m), m.getLastUpdated(), false);
+            this.shardTableQueryMetricHandler.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        deleteAllNonMetadataAccumuloEntries();
+        for (int i = 0; i < 10; i++) {
+            try {
+                if (getMetadataEntries().isEmpty()) {
+                    System.out.println("Sleeping " + (i+1));
+                    Thread.sleep(1000);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        Assert.assertTrue("metadata table empty", getMetadataEntries().size() > 0);
     }
     
     @After
@@ -220,7 +240,7 @@ public class QueryMetricTestBase {
             return o1.equals(o2);
         }
     }
-    
+
     protected Collection<String> getAllAccumuloEntries() {
         List<String> entries = new ArrayList<>();
         List<String> tables = new ArrayList<>();
@@ -228,24 +248,36 @@ public class QueryMetricTestBase {
         tables.add(queryMetricHandlerProperties.getIndexTableName());
         tables.add(queryMetricHandlerProperties.getReverseIndexTableName());
         tables.add(queryMetricHandlerProperties.getMetadataTableName());
+        tables.forEach(t -> {
+            entries.addAll(getAccumuloEntries(t));
+        });
+        return entries;
+    }
+
+    protected Collection<String> getMetadataEntries() {
+        return getAccumuloEntries(queryMetricHandlerProperties.getMetadataTableName());
+    }
+
+    protected Collection<String> getAccumuloEntries(String table) {
+        List<String> entries = new ArrayList<>();
         try {
-            tables.forEach(t -> {
-                Authorizations auths = new Authorizations("PUBLIC");
-                try (BatchScanner bs = this.connector.createBatchScanner(t, auths, 1)) {
-                    bs.setRanges(Collections.singletonList(new Range()));
-                    final Iterator<Map.Entry<Key,Value>> itr = bs.iterator();
-                    while (itr.hasNext()) {
-                        entries.add(t + " -> " + itr.next().getKey());
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
+            Authorizations auths = new Authorizations("PUBLIC");
+            try (BatchScanner bs = this.connector.createBatchScanner(table, auths, 1)) {
+                bs.setRanges(Collections.singletonList(new Range()));
+                final Iterator<Map.Entry<Key,Value>> itr = bs.iterator();
+                while (itr.hasNext()) {
+                    entries.add(table + " -> " + itr.next().getKey());
                 }
-            });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
         return entries;
     }
+
+
     
     protected void printAllAccumuloEntries() {
         getAllAccumuloEntries().forEach(s -> System.out.println(s));
@@ -257,6 +289,26 @@ public class QueryMetricTestBase {
         tables.add(queryMetricHandlerProperties.getIndexTableName());
         tables.add(queryMetricHandlerProperties.getReverseIndexTableName());
         tables.add(queryMetricHandlerProperties.getMetadataTableName());
+        try {
+            tables.forEach(t -> {
+                Authorizations auths = new Authorizations("PUBLIC");
+                try (BatchDeleter bd = this.connector.createBatchDeleter(t, auths, 1, new BatchWriterConfig())) {
+                    bd.setRanges(Collections.singletonList(new Range()));
+                    bd.delete();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    protected void deleteAllNonMetadataAccumuloEntries() {
+        List<String> tables = new ArrayList<>();
+        tables.add(queryMetricHandlerProperties.getShardTableName());
+        tables.add(queryMetricHandlerProperties.getIndexTableName());
+        tables.add(queryMetricHandlerProperties.getReverseIndexTableName());
         try {
             tables.forEach(t -> {
                 Authorizations auths = new Authorizations("PUBLIC");

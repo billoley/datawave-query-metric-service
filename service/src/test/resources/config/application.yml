@@ -45,7 +45,7 @@ management:
 logging:
   level:
     datawave.microservice.authorization.cached: DEBUG
-    ROOT: TRACE
+    root: TRACE
 
 datawave:
   query:
@@ -62,8 +62,8 @@ datawave:
         dateIndexTableName: QueryMetrics_di
         reverseIndexTableName: QueryMetrics_r
         metadataTableName: QueryMetrics_m
-        recordWriterMaxMemory: 10000000
-        recordWriterMaxLatency: 60000
+        recordWriterMaxMemory: 100000
+        recordWriterMaxLatency: 0
         recordWriterNumThreads: 4
         enableBloomFilter: false
 
