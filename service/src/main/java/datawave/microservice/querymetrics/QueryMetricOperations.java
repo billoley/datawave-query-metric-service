@@ -1,6 +1,6 @@
 package datawave.microservice.querymetrics;
 
-import com.hazelcast.core.IMap;
+import com.hazelcast.map.impl.proxy.MapProxyImpl;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.microservice.querymetrics.handler.ShardTableQueryMetricHandler;
 import datawave.webservice.query.metric.BaseQueryMetric;
@@ -25,7 +25,7 @@ public class QueryMetricOperations {
     private Logger log = LoggerFactory.getLogger(getClass());
     
     private ShardTableQueryMetricHandler handler;
-    private Cache incomingQueryMetrics;
+    private Cache incomingQueryMetricsCache;
     private Cache lastWrittenQueryMetricCache;
     private boolean isHazelCast;
     
@@ -33,18 +33,19 @@ public class QueryMetricOperations {
     public QueryMetricOperations(CacheManager cacheManager, ShardTableQueryMetricHandler handler) {
         this.handler = handler;
         this.isHazelCast = cacheManager instanceof HazelcastCacheManager;
-        this.incomingQueryMetrics = cacheManager.getCache("incomingQueryMetrics");
+        this.incomingQueryMetricsCache = cacheManager.getCache("incomingQueryMetrics");
         this.lastWrittenQueryMetricCache = cacheManager.getCache("lastWrittenQueryMetrics");
     }
     
     @RequestMapping(path = "/update", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public String update(@RequestBody Collection<BaseQueryMetric> queryMetrics) {
-
+        
         queryMetrics.forEach(m -> {
             try {
                 if (this.isHazelCast) {
-                    this.incomingQueryMetrics.put(m.getQueryId(), m);
+                    // use a native cache set vs Cache.put to prevent the fetching and return of accumulo value
+                    ((MapProxyImpl) incomingQueryMetricsCache.getNativeCache()).set(m.getQueryId(), m);
                 } else {
                     BaseQueryMetric lastQueryMetric = lastWrittenQueryMetricCache.get(m.getQueryId(), BaseQueryMetric.class);
                     if (lastQueryMetric != null) {

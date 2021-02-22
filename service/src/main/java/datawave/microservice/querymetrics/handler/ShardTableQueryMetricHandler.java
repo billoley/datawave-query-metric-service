@@ -405,7 +405,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
         }
         return queryMetrics;
     }
-
+    
     public T toMetric(datawave.webservice.query.result.event.EventBase event) {
         SimpleDateFormat sdf_date_time1 = new SimpleDateFormat("yyyyMMdd HHmmss");
         SimpleDateFormat sdf_date_time2 = new SimpleDateFormat("yyyyMMdd HHmmss");

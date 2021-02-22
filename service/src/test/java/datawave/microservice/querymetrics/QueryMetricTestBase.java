@@ -71,13 +71,13 @@ public class QueryMetricTestBase {
     
     @Autowired
     protected CacheManager cacheManager;
-
+    
     @Autowired
     protected @Qualifier("warehouse") Connector connector;
-
+    
     @Autowired
     protected QueryMetricHandlerProperties queryMetricHandlerProperties;
-
+    
     protected Cache incomingQueryMetricsCache;
     protected Cache lastWrittenQueryMetricCache;
     
@@ -86,7 +86,7 @@ public class QueryMetricTestBase {
     
     protected RestTemplate restTemplate;
     protected ProxiedUserDetails allowedCaller;
-
+    
     @Before
     public void setup() {
         this.restTemplate = restTemplateBuilder.build(RestTemplate.class);
@@ -96,25 +96,25 @@ public class QueryMetricTestBase {
         this.incomingQueryMetricsCache = cacheManager.getCache("incomingQueryMetrics");
         this.lastWrittenQueryMetricCache = cacheManager.getCache("lastWrittenQueryMetrics");
     }
-
+    
     @After
     public void cleanup() {
         deleteAllAccumuloEntries();
         this.incomingQueryMetricsCache.clear();
         this.lastWrittenQueryMetricCache.clear();
     }
-
+    
     protected QueryMetric createMetric() {
         return createMetric(createQueryId());
     }
-
+    
     protected QueryMetric createMetric(String queryId) {
         long now = System.currentTimeMillis();
         QueryMetric m = new QueryMetric();
         Date nowDate = new Date(now);
-//        Map<String,String> markings = new HashMap<>();
+        // Map<String,String> markings = new HashMap<>();
         m.setQueryId(queryId);
-//        m.setMarkings(markings);
+        // m.setMarkings(markings);
         m.setEndDate(nowDate);
         m.setBeginDate(DateUtils.addDays(nowDate, -1));
         m.setLastUpdated(nowDate);
@@ -123,7 +123,7 @@ public class QueryMetricTestBase {
         m.setHost("localhost");
         return m;
     }
-
+    
     protected String createQueryId() {
         StringBuilder sb = new StringBuilder();
         sb.append(RandomStringUtils.randomNumeric(4));
@@ -151,14 +151,13 @@ public class QueryMetricTestBase {
         
         return new HttpEntity<>(objectMapper.writeValueAsString(body), headers);
     }
-
+    
     protected void assertEquals(BaseQueryMetric m1, BaseQueryMetric m2) {
         assertEquals("", m1, m2);
     }
-
+    
     /*
-     * This method compares the fields of BaseQueryMetric one by one so that the discrepancy is obvious
-     * It also rounds all Date objects to
+     * This method compares the fields of BaseQueryMetric one by one so that the discrepancy is obvious It also rounds all Date objects to
      */
     protected void assertEquals(String message, BaseQueryMetric m1, BaseQueryMetric m2) {
         if (null == m2) {
@@ -203,7 +202,7 @@ public class QueryMetricTestBase {
             Assert.assertTrue(message + "prdictions", assertObjectsEqual(m1.getPredictions(), m2.getPredictions()));
         }
     }
-
+    
     protected boolean assertObjectsEqual(Object o1, Object o2) {
         if (o1 == null && o2 == null) {
             return true;
@@ -213,17 +212,15 @@ public class QueryMetricTestBase {
             return false;
         } else if (o1.getClass() != o2.getClass()) {
             return false;
-        }
-        else if (o1 instanceof Date) {
+        } else if (o1 instanceof Date) {
             long t1 = ((((Date) o1).getTime()) / 1000) * 1000;
             long t2 = ((((Date) o2).getTime()) / 1000) * 1000;
             return t1 == t2;
-        }
-        else {
+        } else {
             return o1.equals(o2);
         }
     }
-
+    
     protected Collection<String> getAllAccumuloEntries() {
         List<String> entries = new ArrayList<>();
         List<String> tables = new ArrayList<>();
@@ -249,11 +246,11 @@ public class QueryMetricTestBase {
         }
         return entries;
     }
-
+    
     protected void printAllAccumuloEntries() {
         getAllAccumuloEntries().forEach(s -> System.out.println(s));
     }
-
+    
     protected void deleteAllAccumuloEntries() {
         List<String> tables = new ArrayList<>();
         tables.add(queryMetricHandlerProperties.getShardTableName());

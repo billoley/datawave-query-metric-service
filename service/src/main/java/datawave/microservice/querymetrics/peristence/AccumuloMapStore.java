@@ -3,9 +3,9 @@ package datawave.microservice.querymetrics.peristence;
 import com.hazelcast.core.MapLoader;
 import com.hazelcast.core.MapStore;
 import com.hazelcast.core.MapStoreFactory;
+import com.hazelcast.map.impl.proxy.MapProxyImpl;
 import datawave.microservice.querymetrics.handler.ShardTableQueryMetricHandler;
 import datawave.webservice.query.metric.BaseQueryMetric;
-import datawave.webservice.query.metric.QueryMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,7 +47,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> implements MapStore<Str
     @Override
     public void store(String queryId, T updatedMetric) {
         try {
-            T lastQueryMetric = (T) lastWrittenQueryMetricCache.get(queryId);
+            T lastQueryMetric = (T) lastWrittenQueryMetricCache.get(queryId, BaseQueryMetric.class);
             if (lastQueryMetric != null) {
                 updatedMetric = handler.combineMetrics(updatedMetric, lastQueryMetric);
                 handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
@@ -56,7 +56,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> implements MapStore<Str
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         } finally {
-            this.lastWrittenQueryMetricCache.put(queryId, updatedMetric);
+            ((MapProxyImpl) lastWrittenQueryMetricCache.getNativeCache()).set(queryId, updatedMetric);
         }
     }
     
@@ -80,16 +80,19 @@ public class AccumuloMapStore<T extends BaseQueryMetric> implements MapStore<Str
     public void deleteAll(Collection<String> keys) {
         // not implemented
     }
-
-    @Override public Iterable<String> loadAllKeys() {
+    
+    @Override
+    public Iterable<String> loadAllKeys() {
         return Collections.emptyList();
     }
-
-    @Override public Map<String,T> loadAll(Collection<String> keys) {
+    
+    @Override
+    public Map<String,T> loadAll(Collection<String> keys) {
         return Collections.emptyMap();
     }
-
-    @Override public T load(String key) {
+    
+    @Override
+    public T load(String key) {
         return null;
     }
 }

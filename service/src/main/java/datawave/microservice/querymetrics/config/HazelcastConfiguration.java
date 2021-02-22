@@ -10,7 +10,9 @@ import com.hazelcast.kubernetes.HazelcastKubernetesDiscoveryStrategyFactory;
 import com.hazelcast.kubernetes.KubernetesProperties;
 import com.hazelcast.spi.discovery.integration.DiscoveryServiceProvider;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
+import datawave.microservice.querymetrics.peristence.AccumuloMapLoader;
 import datawave.microservice.querymetrics.peristence.AccumuloMapStore;
+import datawave.webservice.query.metric.BaseQueryMetric;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -34,11 +36,18 @@ public class HazelcastConfiguration {
     private String clusterName;
     
     @Bean
-    HazelcastInstance hazelcastInstance(Config config, @Qualifier("store") AccumuloMapStore mapStore) {
+    HazelcastInstance hazelcastInstance(Config config, @Qualifier("store") AccumuloMapStore mapStore,
+                    @Qualifier("loader") AccumuloMapLoader mapLoader) {
         HazelcastInstance instance = Hazelcast.newHazelcastInstance(config);
         try {
             HazelcastCacheManager cacheManager = new HazelcastCacheManager(instance);
             Cache lastWrittenQueryMetricsCache = cacheManager.getCache("lastWrittenQueryMetrics");
+            // does something to initialize the cache; otherwise hangs when used from within mapStore
+            try {
+                lastWrittenQueryMetricsCache.get("shouldBeEmpty", BaseQueryMetric.class);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             mapStore.setLastWrittenQueryMetricCache(lastWrittenQueryMetricsCache);
         } catch (Exception e) {
             e.printStackTrace();
