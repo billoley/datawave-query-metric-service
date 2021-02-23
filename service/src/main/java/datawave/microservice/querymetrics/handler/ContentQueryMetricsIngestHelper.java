@@ -38,7 +38,7 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
      * QUERY_LOGIC X QUERY_TYPE X QUERY_NAME X X PARAMETERS X CREATE_DATE X USER X
      */
     
-    private static final Logger log = Logger.getLogger(datawave.query.metrics.ContentQueryMetricsIngestHelper.class);
+    private static final Logger log = Logger.getLogger(ContentQueryMetricsIngestHelper.class);
     
     private Set<String> contentIndexFields = new HashSet<>();
     private HelperDelegate<BaseQueryMetric> delegate = new HelperDelegate<>();

@@ -45,8 +45,8 @@
                 <version>${version.datawave}</version>
                 <exclusions>
                     <exclusion>
-                        <groupId>org.jboss.logging</groupId>
                         <artifactId>jboss-logging</artifactId>
+                        <groupId>org.jboss.logging</groupId>
                     </exclusion>
                 </exclusions>
             </dependency>

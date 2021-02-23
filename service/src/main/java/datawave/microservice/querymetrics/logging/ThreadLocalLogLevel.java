@@ -6,36 +6,35 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ThreadLocalLogLevel {
-    private static ThreadLocal<Map<String, Level>> logToLevelMap = ThreadLocal.withInitial(HashMap::new);
-
-    public ThreadLocalLogLevel() {
-    }
-
+    private static ThreadLocal<Map<String,Level>> logToLevelMap = ThreadLocal.withInitial(HashMap::new);
+    
+    public ThreadLocalLogLevel() {}
+    
     public static void setLevel(String name, Level level) {
-        Map<String, Level> levelMap = (Map)logToLevelMap.get();
+        Map<String,Level> levelMap = (Map) logToLevelMap.get();
         if (levelMap != null) {
             levelMap.put(name, level);
         }
-
+        
     }
-
+    
     public static Level getLevel(String name) {
         Level level = null;
-        Map<String, Level> levelMap = (Map)logToLevelMap.get();
+        Map<String,Level> levelMap = (Map) logToLevelMap.get();
         if (levelMap != null) {
-            level = (Level)levelMap.get(name);
+            level = (Level) levelMap.get(name);
         }
-
+        
         return level;
     }
-
+    
     public static void clear() {
-        Map<String, Level> levelMap = (Map)logToLevelMap.get();
+        Map<String,Level> levelMap = (Map) logToLevelMap.get();
         if (levelMap != null) {
             levelMap.clear();
         }
     }
-
+    
     public static org.apache.log4j.Level getLog4jLevel(Level level) {
         org.apache.log4j.Level log4Level;
         int levelInt = level.toInt();

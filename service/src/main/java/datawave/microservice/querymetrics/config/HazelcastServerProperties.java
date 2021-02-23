@@ -21,9 +21,13 @@ public class HazelcastServerProperties {
      * If true, then configuration of discovery is skipped. Don't use this unless you really know what you are doing, since you will likely break clustering.
      */
     private boolean skipDiscoveryConfiguration = false;
+    
+    private int initialMinClusterSize = 1;
+    
     /**
      * A Hazelcast XML configuration. Ideally this should only define cache configurations.
      */
+    
     private String xmlConfig;
     
     @NestedConfigurationProperty
@@ -51,6 +55,14 @@ public class HazelcastServerProperties {
     
     public void setSkipDiscoveryConfiguration(boolean skipDiscoveryConfiguration) {
         this.skipDiscoveryConfiguration = skipDiscoveryConfiguration;
+    }
+    
+    public int getInitialMinClusterSize() {
+        return initialMinClusterSize;
+    }
+    
+    public void setInitialMinClusterSize(int initialMinClusterSize) {
+        this.initialMinClusterSize = initialMinClusterSize;
     }
     
     public String getXmlConfig() {

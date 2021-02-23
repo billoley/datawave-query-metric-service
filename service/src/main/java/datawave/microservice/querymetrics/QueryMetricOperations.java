@@ -18,6 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Collection;
 import java.util.Collections;
 
+import static datawave.microservice.querymetrics.config.HazelcastConfiguration.INCOMING_METRICS;
+import static datawave.microservice.querymetrics.config.HazelcastConfiguration.LAST_WRITTEN_METRICS;
+
 @RestController
 @RequestMapping(path = "/v1")
 public class QueryMetricOperations {
@@ -33,8 +36,8 @@ public class QueryMetricOperations {
     public QueryMetricOperations(CacheManager cacheManager, ShardTableQueryMetricHandler handler) {
         this.handler = handler;
         this.isHazelCast = cacheManager instanceof HazelcastCacheManager;
-        this.incomingQueryMetricsCache = cacheManager.getCache("incomingQueryMetrics");
-        this.lastWrittenQueryMetricCache = cacheManager.getCache("lastWrittenQueryMetrics");
+        this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
+        this.lastWrittenQueryMetricCache = cacheManager.getCache(LAST_WRITTEN_METRICS);
     }
     
     @RequestMapping(path = "/update", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},

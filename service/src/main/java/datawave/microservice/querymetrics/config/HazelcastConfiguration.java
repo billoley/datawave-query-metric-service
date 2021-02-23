@@ -3,22 +3,22 @@ package datawave.microservice.querymetrics.config;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.DiscoveryStrategyConfig;
 import com.hazelcast.config.JoinConfig;
+import com.hazelcast.config.MapStoreConfig;
 import com.hazelcast.config.XmlConfigBuilder;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.kubernetes.HazelcastKubernetesDiscoveryStrategyFactory;
 import com.hazelcast.kubernetes.KubernetesProperties;
 import com.hazelcast.spi.discovery.integration.DiscoveryServiceProvider;
+import com.hazelcast.spring.cache.HazelcastCache;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.microservice.querymetrics.peristence.AccumuloMapLoader;
 import datawave.microservice.querymetrics.peristence.AccumuloMapStore;
-import datawave.webservice.query.metric.BaseQueryMetric;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.cache.Cache;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -32,6 +32,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @EnableConfigurationProperties({HazelcastServerProperties.class})
 public class HazelcastConfiguration {
     
+    public static final String LAST_WRITTEN_METRICS = "lastWrittenQueryMetrics";
+    public static final String INCOMING_METRICS = "incomingQueryMetrics";
+    
     @Value("${spring.application.name}")
     private String clusterName;
     
@@ -40,12 +43,11 @@ public class HazelcastConfiguration {
         HazelcastInstance instance = Hazelcast.newHazelcastInstance(config);
         try {
             HazelcastCacheManager cacheManager = new HazelcastCacheManager(instance);
-            Cache lastWrittenQueryMetricsCache = cacheManager.getCache("lastWrittenQueryMetrics");
-            // does something to initialize the cache; otherwise hangs when used from within mapStore
-            try {
-                lastWrittenQueryMetricsCache.get("shouldBeEmpty", BaseQueryMetric.class);
-            } catch (Exception e) {
-                e.printStackTrace();
+            HazelcastCache lastWrittenQueryMetricsCache = (HazelcastCache) cacheManager.getCache(LAST_WRITTEN_METRICS);
+            MapStoreConfig mapStoreConfig = config.getMapConfigs().get(LAST_WRITTEN_METRICS).getMapStoreConfig();
+            if (mapStoreConfig.getInitialLoadMode().equals(MapStoreConfig.InitialLoadMode.LAZY)) {
+                // prompts loading all keys otherwise we are getting a deadlock
+                lastWrittenQueryMetricsCache.getNativeCache().size();
             }
             mapStore.setLastWrittenQueryMetricCache(lastWrittenQueryMetricsCache);
         } catch (Exception e) {
@@ -115,7 +117,8 @@ public class HazelcastConfiguration {
             config.setProperty("hazelcast.logging.type", "slf4j"); // Override the default log handler
             config.setProperty("hazelcast.rest.enabled", Boolean.TRUE.toString()); // Enable the REST endpoints so we can test/debug on them
             config.setProperty("hazelcast.phone.home.enabled", Boolean.FALSE.toString()); // Don't try to send stats back to Hazelcast
-            config.setProperty("hazelcast.merge.first.run.delay.seconds", String.valueOf(serverProperties.getInitialMergeDelaySeconds()));
+            config.setProperty("hazelcast.merge.first.run.delay.seconds", Integer.toString(serverProperties.getInitialMergeDelaySeconds()));
+            config.setProperty("hazelcast.initial.min.cluster.size", Integer.toString(serverProperties.getInitialMinClusterSize()));
             config.getNetworkConfig().setReuseAddress(true); // Reuse addresses (so we can try to keep our port on a restart)
         }
         return config;

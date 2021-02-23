@@ -97,25 +97,15 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
                 Assert.assertEquals("incomingQueryMetricsCache number of pages wrong", m.getPageTimes().size(), incomingCachedMetric.getPageTimes().size());
             }
         }
-
-        try {
-            shardTableQueryMetricHandler.flush();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        
         Assert.assertTrue("metadata table empty", getMetadataEntries().size() > 0);
-
+        
         System.out.println("looking for queryId:" + queryId);
         BaseQueryMetric accumuloMetric;
         for (int i = 0; i < 10; i++) {
             accumuloMetric = shardTableQueryMetricHandler.getQueryMetric(queryId);
             if (accumuloMetric == null) {
                 System.out.println((System.currentTimeMillis() - start) + " accumuloMetric == null");
-                try {
-                    shardTableQueryMetricHandler.flush();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
             } else {
                 System.out.println((System.currentTimeMillis() - start) + " updates:" + accumuloMetric.getNumUpdates() + " pages:"
                                 + accumuloMetric.getPageTimes().size());

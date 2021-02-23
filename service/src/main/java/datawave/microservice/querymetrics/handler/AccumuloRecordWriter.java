@@ -25,7 +25,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
 import java.io.IOException;
@@ -47,7 +46,6 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     private long valCount = 0;
     
     private Connector connector;
-    // private AccumuloConnectionFactory connFactory;
     private static final String PREFIX = AccumuloRecordWriter.class.getSimpleName();
     private static final String OUTPUT_INFO_HAS_BEEN_SET = PREFIX + ".configured";
     private static final String INSTANCE_HAS_BEEN_SET = PREFIX + ".instanceConfigured";
@@ -75,7 +73,6 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     public AccumuloRecordWriter(Connector connector, Configuration conf) throws AccumuloException, AccumuloSecurityException, IOException {
         Level l = getLogLevel(conf);
         if (l != null) {
-//            log.setLevel(getLogLevel(conf));
             log.setLevel(Level.TRACE);
         }
         this.simulate = getSimulationMode(conf);
@@ -102,7 +99,6 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
                 log.error(e.getMessage(), e);
             }
         }
-        LoggerFactory.getLogger(TabletServerBatchWriter.class);
     }
     
     /**
@@ -138,7 +134,6 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
         
         try {
             bws.get(table).addMutation(mutation);
-            System.out.println("addMutation table:" + table.toString() + " mutation:" + mutation);
         } catch (MutationsRejectedException e) {
             log.error("Mutation rejected with constraint violations: " + e.getConstraintViolationSummaries() + " row: " + mutation.getRow() + " updates: "
                             + mutation.getUpdates());
@@ -236,20 +231,7 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
         returnConnector();
     }
     
-    public void returnConnector() {
-        // if (null != this.connFactory) {
-        // log.debug("Non-null connection factory");
-        // if (null != this.conn) {
-        // log.debug("Non-null connector to return");
-        // try {
-        // this.connFactory.returnConnection(this.conn);
-        // } catch (Exception e) {
-        // log.warn("Could not return connection to pool", e);
-        // }
-        // this.conn = null;
-        // }
-        // }
-    }
+    public void returnConnector() {}
     
     public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {
         if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false)) {
@@ -335,19 +317,19 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
             switch (levelInt) {
                 case 0:
                     level = Level.TRACE;
-                break;
+                    break;
                 case 10:
                     level = Level.DEBUG;
-                break;
+                    break;
                 case 20:
                     level = Level.INFO;
-                break;
+                    break;
                 case 30:
                     level = Level.WARN;
-                break;
+                    break;
                 case 40:
                     level = Level.ERROR;
-                break;
+                    break;
                 default:
                     level = Level.INFO;
             }
@@ -360,15 +342,6 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     }
     
     public void flush() throws Exception {
-        bws.forEach((t, bw) -> {
-            System.out.println("flushing " + t.toString());
-            try {
-                bw.flush();
-            } catch (Exception e) {
-                e.printStackTrace();
-                log.error(e.getMessage(), e);
-            }
-        });
-//        this.mtbw.flush();
+        this.mtbw.flush();
     }
 }

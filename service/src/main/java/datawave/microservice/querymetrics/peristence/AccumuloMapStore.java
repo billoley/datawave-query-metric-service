@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.Cache;
 import org.springframework.stereotype.Component;
 
@@ -19,13 +20,13 @@ import java.util.Map;
 import java.util.Properties;
 
 @Component
+@ConditionalOnProperty(name = "hazelcast.server.enabled")
 @Qualifier("store")
 public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoader<T> implements MapStore<String,T> {
     
     private static AccumuloMapStore instance;
     private Logger log = LoggerFactory.getLogger(getClass());
     private Cache lastWrittenQueryMetricCache;
-    // private ShardTableQueryMetricHandler<T> handler;
     
     public static class Factory implements MapStoreFactory<String,BaseQueryMetric> {
         @Override
@@ -37,7 +38,6 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     @Autowired
     public AccumuloMapStore(ShardTableQueryMetricHandler handler) {
         super(handler);
-        // this.handler = handler;
         AccumuloMapStore.instance = this;
     }
     

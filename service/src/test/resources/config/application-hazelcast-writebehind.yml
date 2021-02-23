@@ -6,6 +6,7 @@ hazelcast:
     # to create a cluster happens before the server has registered in Consul. Therefore, the split
     # brain merge will take care of joining the multiple clusters.
     initialMergeDelaySeconds: 50
+    initialMinClusterSize: 1
     xml-config: |
       <hazelcast xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                   xsi:schemaLocation="http://www.hazelcast.com/schema/config http://www.hazelcast.com/schema/config/hazelcast-config-3.9.xsd"
