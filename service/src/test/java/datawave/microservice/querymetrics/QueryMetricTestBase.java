@@ -47,8 +47,8 @@ import java.util.List;
 import java.util.Map;
 
 import static datawave.security.authorization.DatawaveUser.UserType.USER;
-import static datawave.microservice.querymetrics.config.HazelcastConfiguration.INCOMING_METRICS;
-import static datawave.microservice.querymetrics.config.HazelcastConfiguration.LAST_WRITTEN_METRICS;
+import static datawave.microservice.querymetrics.config.HazelcastServerConfiguration.INCOMING_METRICS;
+import static datawave.microservice.querymetrics.config.HazelcastServerConfiguration.LAST_WRITTEN_METRICS;
 
 public class QueryMetricTestBase {
     
@@ -142,6 +142,11 @@ public class QueryMetricTestBase {
         m.setQuery("USER:testuser");
         m.setQueryLogic("QueryMetricsQuery");
         m.setHost("localhost");
+        m.setQueryType("RunningQuery");
+        m.setLifecycle(BaseQueryMetric.Lifecycle.INITIALIZED);
+        m.setCreateCallTime(4000);
+        m.setQueryAuthorizations("A,B,C");
+        m.setQueryName("TestQuery");
         return m;
     }
     

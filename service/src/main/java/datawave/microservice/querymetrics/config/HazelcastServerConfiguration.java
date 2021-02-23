@@ -30,7 +30,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @Configuration
 @ConditionalOnProperty(name = "hazelcast.server.enabled")
 @EnableConfigurationProperties({HazelcastServerProperties.class})
-public class HazelcastConfiguration {
+public class HazelcastServerConfiguration {
     
     public static final String LAST_WRITTEN_METRICS = "lastWrittenQueryMetrics";
     public static final String INCOMING_METRICS = "incomingQueryMetrics";

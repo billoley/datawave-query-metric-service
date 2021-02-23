@@ -5,14 +5,12 @@ import datawave.webservice.query.metric.BaseQueryMetric;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import datawave.webservice.query.metric.QueryMetric;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -38,7 +36,7 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
         m.addPageTime(1000, 1000, created - 1000, created);
         
         try {
-            HttpEntity requestEntity = createRequestEntity(null, allowedCaller, Collections.singleton(m));
+            HttpEntity requestEntity = createRequestEntity(null, allowedCaller, m);
             restTemplate.postForEntity(uri.toUri(), requestEntity, String.class);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
@@ -52,17 +50,18 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
     public void MultipleMetricsStoredCorrectlyInCachesAndAccumulo() {
         UriComponents uri = UriComponentsBuilder.newInstance().scheme("http").host("localhost").port(webServicePort).path(updateUrl).build();
         
-        Map<String,QueryMetric> metrics = new LinkedHashMap<>();
+        Map<String,BaseQueryMetric> metrics = new LinkedHashMap<>();
         for (int i = 0; i < 5; i++) {
             String id = createQueryId();
-            metrics.put(id, createMetric(id));
-        }
-        
-        try {
-            HttpEntity requestEntity = createRequestEntity(null, allowedCaller, metrics);
-            restTemplate.postForEntity(uri.toUri(), requestEntity, String.class);
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
+            BaseQueryMetric m = createMetric(id);
+            metrics.put(id, m);
+
+            try {
+                HttpEntity requestEntity = createRequestEntity(null, allowedCaller, m);
+                restTemplate.postForEntity(uri.toUri(), requestEntity, String.class);
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
+            }
         }
         metrics.forEach((queryId, m) -> {
             assertEquals("incomingQueryMetricsCache metric wrong", m, incomingQueryMetricsCache.get(queryId, BaseQueryMetric.class));
@@ -85,7 +84,7 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
             System.out.println("Adding page " + (i + 1));
             m.addPageTime(1000, 1000, now - 1000, now);
             try {
-                HttpEntity requestEntity = createRequestEntity(null, allowedCaller, Collections.singleton(m));
+                HttpEntity requestEntity = createRequestEntity(null, allowedCaller, m);
                 restTemplate.postForEntity(uri.toUri(), requestEntity, String.class);
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
