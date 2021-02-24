@@ -19,6 +19,7 @@
     <properties>
         <start-class>datawave.microservice.authorization.AuthorizationService</start-class>
         <version.authorization-api>1.10-SNAPSHOT</version.authorization-api>
+        <version.base-rest-responses>1.2</version.base-rest-responses>
         <version.curator>4.2.0</version.curator>
         <version.datawave>3.1.6</version.datawave>
         <version.hadoop>3.0.1</version.hadoop>
@@ -64,6 +65,11 @@
                 <groupId>gov.nsa.datawave.microservice</groupId>
                 <artifactId>authorization-api</artifactId>
                 <version>${version.authorization-api}</version>
+            </dependency>
+            <dependency>
+                <groupId>gov.nsa.datawave.microservice</groupId>
+                <artifactId>base-rest-responses</artifactId>
+                <version>${version.base-rest-responses}</version>
             </dependency>
             <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>

@@ -57,7 +57,8 @@ public class QueryMetricTestBase {
     protected static final SubjectIssuerDNPair ALLOWED_CALLER = SubjectIssuerDNPair
                     .of("cn=test.testcorp.com, ou=microservices, ou=development, o=testcorp, c=us", "cn=testcorp ca, ou=security, o=testcorp, c=us");
     
-    protected static final String updateUrl = "/querymetric/v1/update";
+    protected static final String updateMetricUrl = "/querymetric/v1/updateMetric";
+    protected static final String updateMetricsUrl = "/querymetric/v1/updateMetrics";
     
     @Autowired
     protected RestTemplateBuilder restTemplateBuilder;

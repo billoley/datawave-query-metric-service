@@ -14,6 +14,7 @@ import com.hazelcast.spring.cache.HazelcastCache;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.microservice.querymetrics.peristence.AccumuloMapLoader;
 import datawave.microservice.querymetrics.peristence.AccumuloMapStore;
+import datawave.microservice.querymetrics.peristence.MetricMapListener;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -43,7 +44,13 @@ public class HazelcastServerConfiguration {
         HazelcastInstance instance = Hazelcast.newHazelcastInstance(config);
         try {
             HazelcastCacheManager cacheManager = new HazelcastCacheManager(instance);
+            
             HazelcastCache lastWrittenQueryMetricsCache = (HazelcastCache) cacheManager.getCache(LAST_WRITTEN_METRICS);
+            lastWrittenQueryMetricsCache.getNativeCache().addEntryListener(new MetricMapListener(LAST_WRITTEN_METRICS), true);
+            
+            HazelcastCache incomingMetricsCache = (HazelcastCache) cacheManager.getCache(INCOMING_METRICS);
+            incomingMetricsCache.getNativeCache().addEntryListener(new MetricMapListener(INCOMING_METRICS), true);
+            
             MapStoreConfig mapStoreConfig = config.getMapConfigs().get(LAST_WRITTEN_METRICS).getMapStoreConfig();
             if (mapStoreConfig.getInitialLoadMode().equals(MapStoreConfig.InitialLoadMode.LAZY)) {
                 // prompts loading all keys otherwise we are getting a deadlock

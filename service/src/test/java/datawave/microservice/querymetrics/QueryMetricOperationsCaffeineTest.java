@@ -28,6 +28,12 @@ public class QueryMetricOperationsCaffeineTest extends QueryMetricOperationsTest
     
     @Test
     @Override
+    public void MultipleMetricsAsListStoredCorrectlyInCachesAndAccumulo() {
+        super.MultipleMetricsAsListStoredCorrectlyInCachesAndAccumulo();
+    }
+    
+    @Test
+    @Override
     public void PageMetricTest() {
         super.PageMetricTest();
     }

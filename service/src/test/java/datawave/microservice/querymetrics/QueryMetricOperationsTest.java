@@ -28,7 +28,7 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
     
     @Test
     public void MetricStoredCorrectlyInCachesAndAccumulo() {
-        UriComponents uri = UriComponentsBuilder.newInstance().scheme("http").host("localhost").port(webServicePort).path(updateUrl).build();
+        UriComponents uri = UriComponentsBuilder.newInstance().scheme("http").host("localhost").port(webServicePort).path(updateMetricUrl).build();
         
         String queryId = createQueryId();
         QueryMetric m = createMetric(queryId);
@@ -48,14 +48,14 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
     
     @Test
     public void MultipleMetricsStoredCorrectlyInCachesAndAccumulo() {
-        UriComponents uri = UriComponentsBuilder.newInstance().scheme("http").host("localhost").port(webServicePort).path(updateUrl).build();
+        UriComponents uri = UriComponentsBuilder.newInstance().scheme("http").host("localhost").port(webServicePort).path(updateMetricUrl).build();
         
         Map<String,BaseQueryMetric> metrics = new LinkedHashMap<>();
         for (int i = 0; i < 5; i++) {
             String id = createQueryId();
             BaseQueryMetric m = createMetric(id);
             metrics.put(id, m);
-
+            
             try {
                 HttpEntity requestEntity = createRequestEntity(null, allowedCaller, m);
                 restTemplate.postForEntity(uri.toUri(), requestEntity, String.class);
@@ -71,8 +71,33 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
     }
     
     @Test
+    public void MultipleMetricsAsListStoredCorrectlyInCachesAndAccumulo() {
+        UriComponents uri = UriComponentsBuilder.newInstance().scheme("http").host("localhost").port(webServicePort).path(updateMetricsUrl).build();
+        
+        Map<String,BaseQueryMetric> metrics = new LinkedHashMap<>();
+        for (int i = 0; i < 5; i++) {
+            String id = createQueryId();
+            BaseQueryMetric m = createMetric(id);
+            metrics.put(id, m);
+        }
+        
+        try {
+            HttpEntity requestEntity = createRequestEntity(null, allowedCaller, metrics);
+            restTemplate.postForEntity(uri.toUri(), requestEntity, String.class);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
+        
+        metrics.forEach((queryId, m) -> {
+            assertEquals("incomingQueryMetricsCache metric wrong", m, incomingQueryMetricsCache.get(queryId, BaseQueryMetric.class));
+            assertEquals("lastWrittenQueryMetricCache metric wrong", m, lastWrittenQueryMetricCache.get(queryId, BaseQueryMetric.class));
+            assertEquals("accumulo metric wrong", m, shardTableQueryMetricHandler.getQueryMetric(queryId));
+        });
+    }
+    
+    @Test
     public void PageMetricTest() {
-        UriComponents uri = UriComponentsBuilder.newInstance().scheme("http").host("localhost").port(webServicePort).path(updateUrl).build();
+        UriComponents uri = UriComponentsBuilder.newInstance().scheme("http").host("localhost").port(webServicePort).path(updateMetricUrl).build();
         
         String queryId = createQueryId();
         QueryMetric m = createMetric(queryId);
