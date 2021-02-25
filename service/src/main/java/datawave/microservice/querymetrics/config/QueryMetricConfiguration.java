@@ -28,7 +28,6 @@ import static datawave.marking.MarkingFunctions.Factory.log;
 
 @Configuration
 @EnableConfigurationProperties({QueryMetricTimelyProperties.class, QueryMetricHandlerProperties.class})
-
 public class QueryMetricConfiguration {
     
     @Bean

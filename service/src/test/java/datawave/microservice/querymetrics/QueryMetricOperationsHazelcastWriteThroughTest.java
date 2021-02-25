@@ -37,4 +37,13 @@ public class QueryMetricOperationsHazelcastWriteThroughTest extends QueryMetricO
     public void PageMetricTest() {
         super.PageMetricTest();
     }
+    
+    @Test
+    public void logTest() {
+        log.error("error");
+        log.warn("warn");
+        log.info("info");
+        log.debug("debug");
+        log.trace("trace");
+    }
 }

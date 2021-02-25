@@ -5,7 +5,6 @@ import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.microservice.querymetrics.handler.ShardTableQueryMetricHandler;
 import datawave.webservice.query.exception.DatawaveErrorCode;
 import datawave.webservice.query.exception.QueryException;
-import datawave.webservice.query.exception.QueryExceptionType;
 import datawave.webservice.query.metric.BaseQueryMetric;
 import datawave.webservice.result.VoidResponse;
 import org.slf4j.Logger;
