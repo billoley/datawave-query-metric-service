@@ -56,6 +56,7 @@ public class QueryMetricHandlerProperties {
     public Map<String,String> getProperties() {
         
         Map<String,String> p = new HashMap<>();
+        p.put("AccumuloRecordWriter.reader.class", "");
         p.put("AccumuloRecordWriter.zooKeepers", zookeepers);
         p.put("AccumuloRecordWriter.instanceName", instanceName);
         p.put("AccumuloRecordWriter.username", username);

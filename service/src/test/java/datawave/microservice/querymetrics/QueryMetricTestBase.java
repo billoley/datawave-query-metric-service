@@ -21,6 +21,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.time.DateUtils;
+import org.apache.log4j.Level;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -288,22 +289,28 @@ public class QueryMetricTestBase {
     }
     
     protected void deleteAllAccumuloEntries() {
-        List<String> tables = new ArrayList<>();
-        tables.add(queryMetricHandlerProperties.getShardTableName());
-        tables.add(queryMetricHandlerProperties.getIndexTableName());
-        tables.add(queryMetricHandlerProperties.getReverseIndexTableName());
+        Level rootLevel = org.apache.log4j.Logger.getRootLogger().getLevel();
+        org.apache.log4j.Logger.getRootLogger().setLevel(Level.ERROR);
         try {
-            tables.forEach(t -> {
-                Authorizations auths = new Authorizations("PUBLIC");
-                try (BatchDeleter bd = this.connector.createBatchDeleter(t, auths, 1, new BatchWriterConfig())) {
-                    bd.setRanges(Collections.singletonList(new Range()));
-                    bd.delete();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
-        } catch (Exception e) {
-            e.printStackTrace();
+            List<String> tables = new ArrayList<>();
+            tables.add(queryMetricHandlerProperties.getShardTableName());
+            tables.add(queryMetricHandlerProperties.getIndexTableName());
+            tables.add(queryMetricHandlerProperties.getReverseIndexTableName());
+            try {
+                tables.forEach(t -> {
+                    Authorizations auths = new Authorizations("PUBLIC");
+                    try (BatchDeleter bd = this.connector.createBatchDeleter(t, auths, 1, new BatchWriterConfig())) {
+                        bd.setRanges(Collections.singletonList(new Range()));
+                        bd.delete();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } finally {
+            org.apache.log4j.Logger.getRootLogger().setLevel(rootLevel);
         }
     }
 }

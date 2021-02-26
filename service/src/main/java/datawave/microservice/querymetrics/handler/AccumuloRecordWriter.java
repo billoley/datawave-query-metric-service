@@ -2,7 +2,7 @@ package datawave.microservice.querymetrics.handler;
 
 import datawave.accumulo.inmemory.InMemoryInstance;
 import datawave.common.util.ArgumentChecker;
-import datawave.microservice.querymetrics.logging.ThreadConfigurableLogger;
+import datawave.webservice.common.logging.ThreadConfigurableLogger;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -15,7 +15,6 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.impl.TabletServerBatchWriter;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TabletId;
@@ -25,7 +24,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.slf4j.event.Level;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -35,12 +35,12 @@ import java.util.concurrent.TimeUnit;
 
 public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     private MultiTableBatchWriter mtbw = null;
-    private HashMap<Text,BatchWriter> bws = null;
-    private Text defaultTableName = null;
-    private ThreadConfigurableLogger log = ThreadConfigurableLogger.getLogger(AccumuloRecordWriter.class);
+    private HashMap<Text,BatchWriter> bws;
+    private Text defaultTableName;
+    private Logger log = ThreadConfigurableLogger.getLogger(AccumuloRecordWriter.class.getName());
     
-    private boolean simulate = false;
-    private boolean createTables = false;
+    private boolean simulate;
+    private boolean createTables;
     
     private long mutCount = 0;
     private long valCount = 0;

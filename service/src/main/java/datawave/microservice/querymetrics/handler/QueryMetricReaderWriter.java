@@ -3,11 +3,11 @@ package datawave.microservice.querymetrics.handler;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import datawave.microservice.querymetrics.config.QueryMetricHandlerProperties;
-import datawave.microservice.querymetrics.logging.ThreadConfigurableLogger;
 import datawave.query.iterator.QueryOptions;
 import datawave.query.metrics.QueryMetricQueryLogic;
 import datawave.security.authorization.DatawavePrincipal;
 import datawave.webservice.common.connection.AccumuloConnectionFactory;
+import datawave.webservice.common.logging.ThreadConfigurableLogger;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.QueryImpl;
 import datawave.webservice.query.cache.QueryMetricFactory;
@@ -29,7 +29,7 @@ import datawave.webservice.result.EventQueryResponseBase;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
-import org.slf4j.Logger;
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.CacheManager;
@@ -49,7 +49,7 @@ import java.util.UUID;
 @Component
 public class QueryMetricReaderWriter {
     
-    private static final Logger log = ThreadConfigurableLogger.getLogger(QueryMetricReaderWriter.class);
+    private static final Logger log = ThreadConfigurableLogger.getLogger(QueryMetricReaderWriter.class.getName());
     
     private static final String QUERY_METRICS_LOGIC_NAME = "QueryMetricsQuery";
     protected static final String DEFAULT_SECURITY_MARKING = "PUBLIC";

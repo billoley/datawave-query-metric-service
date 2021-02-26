@@ -60,10 +60,11 @@ public class QueryMetricConfiguration {
         return new DefaultResponseObjectFactory();
     }
     
-    @Bean
-    public MetadataHelperFactory metadataHelperFactory() {
-        return new MetadataHelperFactory();
-    }
+    // @Bean
+    // public MetadataHelperFactory metadataHelperFactory() {
+    // return new MetadataHelperFactory();
+    // // MetadataHelperFactory(BeanFactory beanFactory, Factory typeMetadataHelperFactory)
+    // }
     
     @Bean
     public DateIndexHelperFactory dateIndexHelperFactory() {
