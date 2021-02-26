@@ -32,10 +32,10 @@ server:
 
 warehouse-cluster:
   accumulo:
-    zookeepers: 'mock'
-    instanceName: 'mock'
-    username: 'mock'
-    password: 'mock'
+    zookeepers: 'localhost'
+    instanceName: 'accumulo'
+    username: 'root'
+    password: 'secret'
 
 management:
   endpoints:

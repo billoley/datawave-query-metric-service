@@ -289,28 +289,22 @@ public class QueryMetricTestBase {
     }
     
     protected void deleteAllAccumuloEntries() {
-        Level rootLevel = org.apache.log4j.Logger.getRootLogger().getLevel();
-        org.apache.log4j.Logger.getRootLogger().setLevel(Level.ERROR);
+        List<String> tables = new ArrayList<>();
+        tables.add(queryMetricHandlerProperties.getShardTableName());
+        tables.add(queryMetricHandlerProperties.getIndexTableName());
+        tables.add(queryMetricHandlerProperties.getReverseIndexTableName());
         try {
-            List<String> tables = new ArrayList<>();
-            tables.add(queryMetricHandlerProperties.getShardTableName());
-            tables.add(queryMetricHandlerProperties.getIndexTableName());
-            tables.add(queryMetricHandlerProperties.getReverseIndexTableName());
-            try {
-                tables.forEach(t -> {
-                    Authorizations auths = new Authorizations("PUBLIC");
-                    try (BatchDeleter bd = this.connector.createBatchDeleter(t, auths, 1, new BatchWriterConfig())) {
-                        bd.setRanges(Collections.singletonList(new Range()));
-                        bd.delete();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                });
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        } finally {
-            org.apache.log4j.Logger.getRootLogger().setLevel(rootLevel);
+            tables.forEach(t -> {
+                Authorizations auths = new Authorizations("PUBLIC");
+                try (BatchDeleter bd = this.connector.createBatchDeleter(t, auths, 1, new BatchWriterConfig())) {
+                    bd.setRanges(Collections.singletonList(new Range()));
+                    bd.delete();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

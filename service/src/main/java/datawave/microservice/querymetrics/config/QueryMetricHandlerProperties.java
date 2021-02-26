@@ -32,6 +32,7 @@ public class QueryMetricHandlerProperties {
     protected String dateIndexTableName = "QueryMetrics_di";
     protected String reverseIndexTableName = "QueryMetrics_r";
     protected String metadataTableName = "QueryMetrics_m";
+    protected String metadataDefaultAuths = "";
     protected boolean metadataTableFrequencyEnabled = true;
     protected boolean createTables = true;
     protected List<String> fatalErrors = Collections.singletonList("UUID_MISSING");
@@ -56,7 +57,8 @@ public class QueryMetricHandlerProperties {
     public Map<String,String> getProperties() {
         
         Map<String,String> p = new HashMap<>();
-        p.put("AccumuloRecordWriter.reader.class", "");
+        p.put("ingest.data.types", "querymetrics");
+//        p.put("AccumuloRecordWriter.reader.class", "");
         p.put("AccumuloRecordWriter.zooKeepers", zookeepers);
         p.put("AccumuloRecordWriter.instanceName", instanceName);
         p.put("AccumuloRecordWriter.username", username);
@@ -195,7 +197,15 @@ public class QueryMetricHandlerProperties {
     public void setMetadataTableName(String metadataTableName) {
         this.metadataTableName = metadataTableName;
     }
-    
+
+    public String getMetadataDefaultAuths() {
+        return metadataDefaultAuths;
+    }
+
+    public void setMetadataDefaultAuths(String metadataDefaultAuths) {
+        this.metadataDefaultAuths = metadataDefaultAuths;
+    }
+
     public boolean isMetadataTableFrequencyEnabled() {
         return metadataTableFrequencyEnabled;
     }
