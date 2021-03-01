@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletResponse;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -58,17 +59,43 @@ public class QueryMetricOperations {
         return response;
     }
     
+    private Long getLastPageNumber(BaseQueryMetric m) {
+        Long lastPage = null;
+        List<BaseQueryMetric.PageMetric> pageMetrics = m.getPageTimes();
+        for (BaseQueryMetric.PageMetric pm : pageMetrics) {
+            if (lastPage == null || pm.getPageNumber() > lastPage) {
+                lastPage = pm.getPageNumber();
+            }
+        }
+        return lastPage;
+    }
+    
     @RequestMapping(path = "/updateMetric", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public VoidResponse update(@RequestBody BaseQueryMetric queryMetric) {
         
         VoidResponse response = new VoidResponse();
         try {
+            String queryId = queryMetric.getQueryId();
             if (this.isHazelCast) {
                 // use a native cache set vs Cache.put to prevent the fetching and return of accumulo value
-                ((MapProxyImpl) incomingQueryMetricsCache.getNativeCache()).set(queryMetric.getQueryId(), queryMetric);
+                MapProxyImpl incomingQueryMetricsCacheHz = ((MapProxyImpl) incomingQueryMetricsCache.getNativeCache());
+                
+                incomingQueryMetricsCacheHz.lock(queryId);
+                try {
+                    BaseQueryMetric metricToCache = queryMetric;
+                    BaseQueryMetric lastQueryMetric = (BaseQueryMetric) incomingQueryMetricsCacheHz.get(queryId);
+                    if (lastQueryMetric != null) {
+                        log.info("from incoming cache queryMetric " + queryId + " page " + getLastPageNumber(lastQueryMetric));
+                        metricToCache = handler.combineMetrics(queryMetric, lastQueryMetric);
+                    }
+                    incomingQueryMetricsCacheHz.set(queryId, metricToCache);
+                } finally {
+                    incomingQueryMetricsCacheHz.unlock(queryId);
+                    log.info("cached incoming queryMetric " + queryId + " page " + getLastPageNumber(queryMetric));
+                }
             } else {
-                BaseQueryMetric lastQueryMetric = lastWrittenQueryMetricCache.get(queryMetric.getQueryId(), BaseQueryMetric.class);
+                BaseQueryMetric lastQueryMetric = lastWrittenQueryMetricCache.get(queryId, BaseQueryMetric.class);
                 if (lastQueryMetric != null) {
                     BaseQueryMetric combined = handler.combineMetrics(queryMetric, lastQueryMetric);
                     handler.writeMetric(combined, Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
@@ -76,7 +103,7 @@ public class QueryMetricOperations {
                 } else {
                     handler.writeMetric(queryMetric, Collections.singletonList(queryMetric), queryMetric.getLastUpdated(), false);
                 }
-                this.lastWrittenQueryMetricCache.put(queryMetric.getQueryId(), queryMetric);
+                this.lastWrittenQueryMetricCache.put(queryId, queryMetric);
             }
         } catch (Exception e) {
             log.error(e.getMessage(), e);

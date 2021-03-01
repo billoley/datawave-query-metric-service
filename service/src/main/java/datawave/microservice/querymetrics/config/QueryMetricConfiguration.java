@@ -71,7 +71,7 @@ public class QueryMetricConfiguration {
     public MetadataHelperFactory metadataHelperFactory(BeanFactory beanFactory, TypeMetadataHelper.Factory typeMetadataHelperFactory) {
         return new MetadataHelperFactory(beanFactory, typeMetadataHelperFactory);
     }
-
+    
     @Bean(name = "metadataHelperCacheManager")
     @ConditionalOnMissingBean(name = "metadataHelperCacheManager")
     public CacheManager metadataHelperCacheManager(QueryMetricHandlerProperties queryMetricHandlerProperties) {

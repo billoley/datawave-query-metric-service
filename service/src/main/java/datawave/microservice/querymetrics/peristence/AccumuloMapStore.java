@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -45,6 +46,17 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
         this.lastWrittenQueryMetricCache = lastWrittenQueryMetricCache;
     }
     
+    private Long getLastPageNumber(BaseQueryMetric m) {
+        Long lastPage = null;
+        List<BaseQueryMetric.PageMetric> pageMetrics = m.getPageTimes();
+        for (BaseQueryMetric.PageMetric pm : pageMetrics) {
+            if (lastPage == null || pm.getPageNumber() > lastPage) {
+                lastPage = pm.getPageNumber();
+            }
+        }
+        return lastPage;
+    }
+    
     @Override
     public void store(String queryId, T updatedMetric) {
         try {
@@ -58,6 +70,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
             log.error(e.getMessage(), e);
         } finally {
             ((MapProxyImpl) lastWrittenQueryMetricCache.getNativeCache()).set(queryId, updatedMetric);
+            log.info("stored queryMetric " + updatedMetric.getQueryId() + " page " + getLastPageNumber(updatedMetric));
         }
     }
     

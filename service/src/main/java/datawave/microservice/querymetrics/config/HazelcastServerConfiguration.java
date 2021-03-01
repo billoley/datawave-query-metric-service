@@ -127,6 +127,7 @@ public class HazelcastServerConfiguration {
             config.setProperty("hazelcast.merge.first.run.delay.seconds", Integer.toString(serverProperties.getInitialMergeDelaySeconds()));
             config.setProperty("hazelcast.initial.min.cluster.size", Integer.toString(serverProperties.getInitialMinClusterSize()));
             config.getNetworkConfig().setReuseAddress(true); // Reuse addresses (so we can try to keep our port on a restart)
+            config.getC
         }
         return config;
     }

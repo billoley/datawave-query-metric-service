@@ -45,12 +45,17 @@ management:
 logging:
   level:
     ROOT: error
-    datawave: trace
+    datawave: error
+    datawave.microservice.querymetrics.peristence: info
+    datawave.microservice.querymetrics.QueryMetricOperations: info
     datawave.iterators: info
     datawave.ingest.metadata: info
     datawave.ingest.table: info
     datawave.util.ObjectFactory: error
     datawave.query: info
+    datawave.query.tables.ShardQueryLogic: error
+    datawave.security.authorization.JWTTokenHandler: info
+
 
 
 

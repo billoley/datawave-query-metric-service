@@ -58,7 +58,7 @@ public class QueryMetricHandlerProperties {
         
         Map<String,String> p = new HashMap<>();
         p.put("ingest.data.types", "querymetrics");
-//        p.put("AccumuloRecordWriter.reader.class", "");
+        // p.put("AccumuloRecordWriter.reader.class", "");
         p.put("AccumuloRecordWriter.zooKeepers", zookeepers);
         p.put("AccumuloRecordWriter.instanceName", instanceName);
         p.put("AccumuloRecordWriter.username", username);
@@ -197,15 +197,15 @@ public class QueryMetricHandlerProperties {
     public void setMetadataTableName(String metadataTableName) {
         this.metadataTableName = metadataTableName;
     }
-
+    
     public String getMetadataDefaultAuths() {
         return metadataDefaultAuths;
     }
-
+    
     public void setMetadataDefaultAuths(String metadataDefaultAuths) {
         this.metadataDefaultAuths = metadataDefaultAuths;
     }
-
+    
     public boolean isMetadataTableFrequencyEnabled() {
         return metadataTableFrequencyEnabled;
     }
