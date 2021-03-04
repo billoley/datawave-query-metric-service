@@ -7,6 +7,9 @@ import com.hazelcast.config.MapStoreConfig;
 import com.hazelcast.config.XmlConfigBuilder;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.MemberAttributeEvent;
+import com.hazelcast.core.MembershipEvent;
+import com.hazelcast.core.MembershipListener;
 import com.hazelcast.kubernetes.HazelcastKubernetesDiscoveryStrategyFactory;
 import com.hazelcast.kubernetes.KubernetesProperties;
 import com.hazelcast.spi.discovery.integration.DiscoveryServiceProvider;
@@ -15,6 +18,7 @@ import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.microservice.querymetrics.peristence.AccumuloMapLoader;
 import datawave.microservice.querymetrics.peristence.AccumuloMapStore;
 import datawave.microservice.querymetrics.peristence.MetricMapListener;
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -33,6 +37,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @EnableConfigurationProperties({HazelcastServerProperties.class})
 public class HazelcastServerConfiguration {
     
+    private Logger log = Logger.getLogger(HazelcastServerConfiguration.class);
     public static final String LAST_WRITTEN_METRICS = "lastWrittenQueryMetrics";
     public static final String INCOMING_METRICS = "incomingQueryMetrics";
     
@@ -60,6 +65,26 @@ public class HazelcastServerConfiguration {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        
+        instance.getCluster().addMembershipListener(new MembershipListener() {
+            @Override
+            public void memberAdded(MembershipEvent membershipEvent) {
+                log.info("member added: " + membershipEvent.getMember().getUuid() + ":" + membershipEvent.getMember().getAddress().toString());
+                
+            }
+            
+            @Override
+            public void memberRemoved(MembershipEvent membershipEvent) {
+                log.info("member removed: " + membershipEvent.getMember().getUuid() + ":" + membershipEvent.getMember().getAddress().toString());
+            }
+            
+            @Override
+            public void memberAttributeChanged(MemberAttributeEvent memberAttributeEvent) {
+                
+            }
+        });
+        System.setProperty("hzAddress", instance.getCluster().getLocalMember().getAddress().toString());
+        System.setProperty("hzUuid", instance.getCluster().getLocalMember().getUuid());
         return instance;
     }
     
@@ -127,7 +152,6 @@ public class HazelcastServerConfiguration {
             config.setProperty("hazelcast.merge.first.run.delay.seconds", Integer.toString(serverProperties.getInitialMergeDelaySeconds()));
             config.setProperty("hazelcast.initial.min.cluster.size", Integer.toString(serverProperties.getInitialMinClusterSize()));
             config.getNetworkConfig().setReuseAddress(true); // Reuse addresses (so we can try to keep our port on a restart)
-            config.getC
         }
         return config;
     }

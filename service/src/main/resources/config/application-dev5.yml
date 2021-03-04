@@ -1,0 +1,3 @@
+server:
+  port: 9047
+  non-secure-port: 9147

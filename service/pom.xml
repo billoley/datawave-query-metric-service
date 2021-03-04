@@ -25,7 +25,6 @@
         <version.microservice.hazelcast-client>1.5</version.microservice.hazelcast-client>
         <version.microservice.metadata-utils>1.6</version.microservice.metadata-utils>
         <version.microservice.starter>1.6.5</version.microservice.starter>
-        <version.slf4j>1.7.26</version.slf4j>
         <version.slf4j-log4j12>1.7.30</version.slf4j-log4j12>
     </properties>
     <dependencyManagement>
@@ -47,23 +46,9 @@
                 <version>${version.datawave}</version>
                 <exclusions>
                     <exclusion>
-                        <artifactId>slf4j-log4j12</artifactId>
-                        <groupId>org.slf4j</groupId>
-                    </exclusion>
-                    <exclusion>
                         <artifactId>log4j</artifactId>
                         <groupId>log4j</groupId>
                     </exclusion>
-                    <!--
-                    <exclusion>
-                        <artifactId>commons-logging</artifactId>
-                        <groupId>commons-logging</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>jboss-logging</artifactId>
-                        <groupId>org.jboss.logging</groupId>
-                    </exclusion>
-                    -->
                 </exclusions>
             </dependency>
             <dependency>
@@ -72,19 +57,9 @@
                 <version>${version.in-memory-accumulo}</version>
                 <exclusions>
                     <exclusion>
-                        <artifactId>slf4j-log4j12</artifactId>
-                        <groupId>org.slf4j</groupId>
-                    </exclusion>
-                    <exclusion>
                         <artifactId>log4j</artifactId>
                         <groupId>log4j</groupId>
                     </exclusion>
-                    <!--
-                    <exclusion>
-                        <artifactId>commons-logging</artifactId>
-                        <groupId>commons-logging</groupId>
-                    </exclusion>
-                    -->
                 </exclusions>
             </dependency>
             <dependency>
@@ -106,6 +81,12 @@
                 <groupId>gov.nsa.datawave.microservice</groupId>
                 <artifactId>spring-boot-starter-datawave</artifactId>
                 <version>${version.microservice.starter}</version>
+                <exclusions>
+                    <exclusion>
+                        <artifactId>log4j-slf4j-impl</artifactId>
+                        <groupId>org.apache.logging.log4j</groupId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>gov.nsa.datawave.webservices</groupId>
@@ -113,19 +94,9 @@
                 <version>${version.datawave}</version>
                 <exclusions>
                     <exclusion>
-                        <artifactId>slf4j-log4j12</artifactId>
-                        <groupId>org.slf4j</groupId>
-                    </exclusion>
-                    <exclusion>
                         <artifactId>log4j</artifactId>
                         <groupId>log4j</groupId>
                     </exclusion>
-                    <!--
-                    <exclusion>
-                        <artifactId>commons-logging</artifactId>
-                        <groupId>commons-logging</groupId>
-                    </exclusion>
-                    -->
                 </exclusions>
             </dependency>
             <dependency>
@@ -134,30 +105,15 @@
                 <version>${version.datawave}</version>
                 <exclusions>
                     <exclusion>
-                        <artifactId>slf4j-log4j12</artifactId>
-                        <groupId>org.slf4j</groupId>
-                    </exclusion>
-                    <exclusion>
                         <artifactId>log4j</artifactId>
                         <groupId>log4j</groupId>
                     </exclusion>
-                    <!--
-                    <exclusion>
-                        <artifactId>commons-logging</artifactId>
-                        <groupId>commons-logging</groupId>
-                    </exclusion>
-                    -->
                 </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-1.2-api</artifactId>
                 <version>2.11.2</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apalog4j</groupId>
-                <artifactId>log4j</artifactId>
-                <version>1.2.17</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -200,12 +156,6 @@
             <artifactId>cache-api</artifactId>
             <version>1.1.1</version>
         </dependency>
-        <!--
-        <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-        </dependency>
-        -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-1.2-api</artifactId>

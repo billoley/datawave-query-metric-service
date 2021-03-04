@@ -1,2 +1,3 @@
 server:
   port: 9043
+  non-secure-port: 9143
