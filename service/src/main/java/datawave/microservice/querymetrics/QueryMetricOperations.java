@@ -2,26 +2,32 @@ package datawave.microservice.querymetrics;
 
 import com.hazelcast.map.impl.proxy.MapProxyImpl;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
+import datawave.microservice.authorization.user.ProxiedUserDetails;
+import datawave.microservice.querymetrics.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetrics.handler.ShardTableQueryMetricHandler;
+import datawave.security.util.DnUtils;
 import datawave.webservice.query.exception.DatawaveErrorCode;
 import datawave.webservice.query.exception.QueryException;
 import datawave.webservice.query.metric.BaseQueryMetric;
+import datawave.webservice.query.metric.BaseQueryMetricListResponse;
+import datawave.webservice.query.metric.QueryMetricListResponse;
 import datawave.webservice.result.VoidResponse;
+import io.swagger.annotations.ApiParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 
 import static datawave.microservice.querymetrics.config.HazelcastServerConfiguration.INCOMING_METRICS;
@@ -37,13 +43,16 @@ public class QueryMetricOperations {
     private Cache incomingQueryMetricsCache;
     private Cache lastWrittenQueryMetricCache;
     private boolean isHazelCast;
+    QueryMetricHandlerProperties queryMetricHandlerProperties;
     
     @Autowired
-    public QueryMetricOperations(CacheManager cacheManager, ShardTableQueryMetricHandler handler) {
+    public QueryMetricOperations(CacheManager cacheManager, ShardTableQueryMetricHandler handler,
+                                 QueryMetricHandlerProperties queryMetricHandlerProperties) {
         this.handler = handler;
         this.isHazelCast = cacheManager instanceof HazelcastCacheManager;
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
         this.lastWrittenQueryMetricCache = cacheManager.getCache(LAST_WRITTEN_METRICS);
+        this.queryMetricHandlerProperties = queryMetricHandlerProperties;
     }
     
     @RequestMapping(path = "/updateMetrics", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
@@ -109,6 +118,37 @@ public class QueryMetricOperations {
             log.error(e.getMessage(), e);
             response.addException(new QueryException(DatawaveErrorCode.UNKNOWN_SERVER_ERROR, e));
         }
+        return response;
+    }
+
+    /**
+     * Returns metrics for the current users queries that are identified by the id
+     *
+     * @param id
+     *
+     * @return datawave.webservice.result.QueryMetricListResponse
+     *
+     * @HTTP 200 success
+     * @HTTP 500 internal server error
+     */
+    @RequestMapping(path = "/id/{id}", method = {RequestMethod.POST}, produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    public BaseQueryMetricListResponse query(@AuthenticationPrincipal ProxiedUserDetails currentUser,
+                                             @ApiParam("queryId to return") @PathVariable("id") String id) {
+
+        BaseQueryMetricListResponse response = new QueryMetricListResponse();
+        BaseQueryMetric metric = incomingQueryMetricsCache.get(id, BaseQueryMetric.class);
+        List<BaseQueryMetric> metricList = new ArrayList<>();
+        if (metric != null) {
+            String adminRole = queryMetricHandlerProperties.getMetricAdminRole();
+            String requestingUser = DnUtils.getShortName(currentUser.getPrimaryUser().getName());
+            String metricUser = metric.getUser();
+            boolean allowAllMetrics = adminRole == null || currentUser.getPrimaryUser().getRoles().contains(adminRole);
+            boolean sameUser = metricUser != null && metricUser.equals(requestingUser);
+            if (sameUser || allowAllMetrics) {
+                metricList.add(metric);
+            }
+        }
+        response.setResult(metricList);
         return response;
     }
 }

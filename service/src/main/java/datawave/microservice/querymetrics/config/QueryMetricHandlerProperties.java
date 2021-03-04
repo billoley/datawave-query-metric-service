@@ -39,15 +39,63 @@ public class QueryMetricHandlerProperties {
     protected String dateField = "CREATE_DATE";
     protected String dateFormat = "yyyyMMdd HHmmss.S";
     protected int fieldLengthThreshold = 4049;
-    protected List<String> indexFields = Arrays.asList("AUTHORIZATIONS", "BEGIN_DATE", "CREATE_CALL_TIME", "CREATE_DATE", "DOC_RANGES", "ELAPSED_TIME",
-                    "END_DATE", "ERROR_CODE", "ERROR_MESSAGE", "FI_RANGES", "HOST", "LIFECYCLE", "NEGATIVE_SELECTORS", "NEXT_COUNT", "NUM_PAGES", "NUM_RESULTS",
-                    "NUM_UPDATES", "PARAMETERS", "POSITIVE_SELECTORS", "PROXY_SERVERS", "QUERY", "QUERY_ID", "QUERY_TYPE", "QUERY_LOGIC", "QUERY_NAME",
-                    "SETUP_TIME", "SEEK_COUNT", "SOURCE_COUNT", "USER");
+    protected String metricAdminRole;
+
+    //@formatter:off
+    protected List<String> indexFields = Arrays.asList(
+            "AUTHORIZATIONS",
+            "BEGIN_DATE",
+            "CREATE_CALL_TIME",
+            "CREATE_DATE",
+            "DOC_RANGES",
+            "ELAPSED_TIME",
+            "END_DATE",
+            "ERROR_CODE",
+            "ERROR_MESSAGE",
+            "FI_RANGES",
+            "HOST",
+            "LIFECYCLE",
+            "NEGATIVE_SELECTORS",
+            "NEXT_COUNT",
+            "NUM_PAGES",
+            "NUM_RESULTS",
+            "NUM_UPDATES",
+            "PARAMETERS",
+            "POSITIVE_SELECTORS",
+            "PROXY_SERVERS",
+            "QUERY",
+            "QUERY_ID",
+            "QUERY_TYPE",
+            "QUERY_LOGIC",
+            "QUERY_NAME",
+            "SETUP_TIME",
+            "SEEK_COUNT",
+            "SOURCE_COUNT",
+            "USER");
     
-    protected List<String> reverseIndexFields = Arrays.asList("ERROR_CODE", "ERROR_MESSAGE", "HOST", "NEGATIVE_SELECTORS", "PARAMETERS", "POSITIVE_SELECTORS",
-                    "PROXY_SERVERS", "QUERY", "QUERY_TYPE", "QUERY_LOGIC", "QUERY_NAME", "USER");
+    protected List<String> reverseIndexFields = Arrays.asList(
+            "ERROR_CODE",
+            "ERROR_MESSAGE",
+            "HOST",
+            "NEGATIVE_SELECTORS",
+            "PARAMETERS",
+            "POSITIVE_SELECTORS",
+            "PROXY_SERVERS",
+            "QUERY",
+            "QUERY_TYPE",
+            "QUERY_LOGIC",
+            "QUERY_NAME",
+            "USER");
     
-    protected List<String> numericFields = Arrays.asList("CREATE_CALL_TIME", "SETUP_TIME", "ELAPSED_TIME", "NUM_RESULTS", "NUM_PAGES", "NUM_UPDATES");
+    protected List<String> numericFields = Arrays.asList(
+            "CREATE_CALL_TIME",
+            "SETUP_TIME",
+            "ELAPSED_TIME",
+            "NUM_RESULTS",
+            "NUM_PAGES",
+            "NUM_UPDATES");
+    //@formatter:on
+
     protected boolean enableBloomFilter = false;
     protected int recordWriterMaxMemory = 10000000;
     protected int recordWriterMaxLatency = 60000;
@@ -316,5 +364,13 @@ public class QueryMetricHandlerProperties {
     
     public void setPolicyEnforcerClass(String policyEnforcerClass) {
         this.policyEnforcerClass = policyEnforcerClass;
+    }
+
+    public String getMetricAdminRole() {
+        return metricAdminRole;
+    }
+
+    public void setMetricAdminRole(String metricAdminRole) {
+        this.metricAdminRole = metricAdminRole;
     }
 }

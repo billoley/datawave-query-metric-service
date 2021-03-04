@@ -26,6 +26,7 @@ import datawave.webservice.common.connection.AccumuloConnectionFactory.Priority;
 import datawave.webservice.common.logging.ThreadConfigurableLogger;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.QueryImpl;
+import datawave.webservice.query.QueryImpl.Parameter;
 import datawave.webservice.query.cache.QueryMetricFactory;
 import datawave.webservice.query.cache.ResultsPage;
 import datawave.webservice.query.exception.QueryException;
@@ -41,6 +42,7 @@ import datawave.webservice.query.util.QueryUtil;
 import datawave.webservice.result.BaseQueryResponse;
 import datawave.webservice.result.BaseResponse;
 import datawave.webservice.result.EventQueryResponseBase;
+import datawave.webservice.result.VoidResponse;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -68,7 +70,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
-import datawave.webservice.query.QueryImpl.Parameter;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -333,28 +334,35 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
             enableLogs(true);
         }
     }
-    
+
     public T getQueryMetric(final String queryId) {
-        List<T> queryMetrics = getQueryMetrics(queryId);
+        VoidResponse response = new VoidResponse();
+        List<T> queryMetrics = getQueryMetrics(response, "QUERY_ID == '" + queryId + "'");
+        List<QueryExceptionType> exceptions = response.getExceptions();
+        if (exceptions != null && !exceptions.isEmpty()) {
+            exceptions.forEach(e -> {
+                log.error(e.getMessage());
+            });
+        }
         return queryMetrics.isEmpty() ? null : queryMetrics.get(0);
     }
     
-    private List<T> getQueryMetrics(final String queryId) {
+    private List<T> getQueryMetrics(BaseResponse response, final String query) {
         Date end = new Date();
         Date begin = DateUtils.setYears(end, 2000);
-        QueryImpl query = new QueryImpl();
-        query.setBeginDate(begin);
-        query.setEndDate(end);
-        query.setQueryLogicName(QUERY_METRICS_LOGIC_NAME);
-        query.setQuery("QUERY_ID == '" + queryId + "'");
-        query.setQueryName(QUERY_METRICS_LOGIC_NAME);
-        query.setColumnVisibility(queryMetricHandlerProperties.getVisibilityString());
-        query.setQueryAuthorizations(this.connectorAuthorizations);
-        query.setExpirationDate(DateUtils.addDays(new Date(), 1));
-        query.setPagesize(1000);
-        query.setId(UUID.randomUUID());
-        query.setParameters(ImmutableMap.of(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true"));
-        return getQueryMetrics(null, query);
+        QueryImpl queryImpl = new QueryImpl();
+        queryImpl.setBeginDate(begin);
+        queryImpl.setEndDate(end);
+        queryImpl.setQueryLogicName(QUERY_METRICS_LOGIC_NAME);
+        queryImpl.setQuery(query);
+        queryImpl.setQueryName(QUERY_METRICS_LOGIC_NAME);
+        queryImpl.setColumnVisibility(queryMetricHandlerProperties.getVisibilityString());
+        queryImpl.setQueryAuthorizations(this.connectorAuthorizations);
+        queryImpl.setExpirationDate(DateUtils.addDays(new Date(), 1));
+        queryImpl.setPagesize(1000);
+        queryImpl.setId(UUID.randomUUID());
+        queryImpl.setParameters(ImmutableMap.of(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true"));
+        return getQueryMetrics(response, queryImpl);
     }
     
     private List<T> getQueryMetrics(BaseResponse response, Query query) {
