@@ -105,8 +105,11 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     // return Collections.emptyMap();
     // }
     //
-    // @Override
-    // public T load(String key) {
-    // return null;
-    // }
+    @Override
+    public T load(String key) {
+        log.info("Loading: " + key);
+        T t = super.load(key);
+        log.info("Loading: " + key + " got: " + t);
+        return t;
+    }
 }

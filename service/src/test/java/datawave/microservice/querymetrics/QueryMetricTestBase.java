@@ -60,6 +60,7 @@ public class QueryMetricTestBase {
     
     protected static final String updateMetricUrl = "/querymetric/v1/updateMetric";
     protected static final String updateMetricsUrl = "/querymetric/v1/updateMetrics";
+    protected static final String getMetricsUrl = "/querymetric/v1/id/%s";
     
     @Autowired
     protected RestTemplateBuilder restTemplateBuilder;

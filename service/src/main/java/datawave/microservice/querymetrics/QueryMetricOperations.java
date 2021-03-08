@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.annotation.security.PermitAll;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -46,8 +47,7 @@ public class QueryMetricOperations {
     QueryMetricHandlerProperties queryMetricHandlerProperties;
     
     @Autowired
-    public QueryMetricOperations(CacheManager cacheManager, ShardTableQueryMetricHandler handler,
-                                 QueryMetricHandlerProperties queryMetricHandlerProperties) {
+    public QueryMetricOperations(CacheManager cacheManager, ShardTableQueryMetricHandler handler, QueryMetricHandlerProperties queryMetricHandlerProperties) {
         this.handler = handler;
         this.isHazelCast = cacheManager instanceof HazelcastCacheManager;
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
@@ -120,7 +120,7 @@ public class QueryMetricOperations {
         }
         return response;
     }
-
+    
     /**
      * Returns metrics for the current users queries that are identified by the id
      *
@@ -131,18 +131,21 @@ public class QueryMetricOperations {
      * @HTTP 200 success
      * @HTTP 500 internal server error
      */
-    @RequestMapping(path = "/id/{id}", method = {RequestMethod.POST}, produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
-    public BaseQueryMetricListResponse query(@AuthenticationPrincipal ProxiedUserDetails currentUser,
-                                             @ApiParam("queryId to return") @PathVariable("id") String id) {
-
+    @PermitAll
+    @RequestMapping(path = "/id/{id}", method = {RequestMethod.GET}, produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    public BaseQueryMetricListResponse query(/* @AuthenticationPrincipal ProxiedUserDetails currentUser, */
+                    @ApiParam("queryId to return") @PathVariable("id") String id) {
+        
         BaseQueryMetricListResponse response = new QueryMetricListResponse();
+        log.info("Get request for queryId:" + id);
         BaseQueryMetric metric = incomingQueryMetricsCache.get(id, BaseQueryMetric.class);
+        log.info("Get request for queryId, received: " + metric);
         List<BaseQueryMetric> metricList = new ArrayList<>();
         if (metric != null) {
             String adminRole = queryMetricHandlerProperties.getMetricAdminRole();
-            String requestingUser = DnUtils.getShortName(currentUser.getPrimaryUser().getName());
+            String requestingUser = "";// DnUtils.getShortName(currentUser.getPrimaryUser().getName());
             String metricUser = metric.getUser();
-            boolean allowAllMetrics = adminRole == null || currentUser.getPrimaryUser().getRoles().contains(adminRole);
+            boolean allowAllMetrics = adminRole == null; // || currentUser.getPrimaryUser().getRoles().contains(adminRole);
             boolean sameUser = metricUser != null && metricUser.equals(requestingUser);
             if (sameUser || allowAllMetrics) {
                 metricList.add(metric);

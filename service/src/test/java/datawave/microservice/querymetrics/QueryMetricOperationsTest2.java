@@ -10,6 +10,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.util.UriComponents;
@@ -138,7 +140,7 @@ public class QueryMetricOperationsTest2 extends QueryMetricTestBase {
         QueryMetric m = createMetric(queryId);
         Random r = new Random();
         
-        int numPages = 1000;
+        int numPages = 10;
         long start = System.currentTimeMillis();
         for (int i = 0; i < numPages; i++) {
             long now = System.currentTimeMillis();
@@ -179,5 +181,20 @@ public class QueryMetricOperationsTest2 extends QueryMetricTestBase {
                 Assert.assertEquals("incomingQueryMetricsCache number of pages wrong", m.getPageTimes().size(), incomingCachedMetric.getPageTimes().size());
             }
         }
+    }
+    
+    @Test
+    public void GetMetric() {
+        try {
+            String id = "2066-5019-1520-8425";
+            UriComponents uri = UriComponentsBuilder.newInstance().scheme("https").host("localhost").port(port1).path(String.format(getMetricsUrl, id)).build();
+            
+            HttpEntity requestEntity = createRequestEntity(null, allowedCaller, null);
+            ResponseEntity<BaseQueryMetric> response = restTemplate.exchange(uri.toUri(), HttpMethod.GET, requestEntity, BaseQueryMetric.class);
+            System.out.println(response.getBody());
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
+        
     }
 }

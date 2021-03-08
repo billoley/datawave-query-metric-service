@@ -15,7 +15,7 @@ server:
   non-secure-port: 0
   servlet.context-path: /querymetric
   ssl:
-    client-auth: NEED
+    client-auth: none
     trust-store: classpath:ssl/rootCA.p12
     trust-store-type: PKCS12
     trust-store-password: LetMeIn
@@ -44,12 +44,12 @@ management:
 
 logging:
   level:
-    ROOT: info
+    ROOT: trace
     datawave:
+      query: debug
       microservice:
         querymetrics: trace
     com.hazelcast: info
-#    datawave: error
 #    datawave.microservice.querymetrics.peristence: info
 #    datawave.microservice.querymetrics.QueryMetricOperations: info
 #    datawave.iterators: info
@@ -59,12 +59,6 @@ logging:
 #    datawave.query: info
 #    datawave.query.tables.ShardQueryLogic: error
 #    datawave.security.authorization.JWTTokenHandler: info
-
-
-
-
-
-
 
 datawave:
   query:

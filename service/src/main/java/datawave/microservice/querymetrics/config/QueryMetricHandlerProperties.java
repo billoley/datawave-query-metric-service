@@ -40,7 +40,7 @@ public class QueryMetricHandlerProperties {
     protected String dateFormat = "yyyyMMdd HHmmss.S";
     protected int fieldLengthThreshold = 4049;
     protected String metricAdminRole;
-
+    
     //@formatter:off
     protected List<String> indexFields = Arrays.asList(
             "AUTHORIZATIONS",
@@ -95,7 +95,7 @@ public class QueryMetricHandlerProperties {
             "NUM_PAGES",
             "NUM_UPDATES");
     //@formatter:on
-
+    
     protected boolean enableBloomFilter = false;
     protected int recordWriterMaxMemory = 10000000;
     protected int recordWriterMaxLatency = 60000;
@@ -365,11 +365,11 @@ public class QueryMetricHandlerProperties {
     public void setPolicyEnforcerClass(String policyEnforcerClass) {
         this.policyEnforcerClass = policyEnforcerClass;
     }
-
+    
     public String getMetricAdminRole() {
         return metricAdminRole;
     }
-
+    
     public void setMetricAdminRole(String metricAdminRole) {
         this.metricAdminRole = metricAdminRole;
     }

@@ -1,5 +1,6 @@
 target/
-logs/
+logs/**
+**/.DS_Store
 
 .idea/
 *.iml
@@ -8,3 +9,4 @@ logs/
 .classpath
 .project
 .settings/
+

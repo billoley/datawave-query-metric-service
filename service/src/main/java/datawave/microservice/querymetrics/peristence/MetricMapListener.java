@@ -49,8 +49,14 @@ public class MetricMapListener implements EntryAddedListener, EntryUpdatedListen
     }
     
     private String printEvent(EntryEvent event) {
-        BaseQueryMetric m = (BaseQueryMetric) event.getValue();
-        return event.getName() + " queryId:" + (m.getQueryId() + " page:" + getLastPageNumber(m));
+        Object o = event.getValue();
+        if (o instanceof BaseQueryMetric) {
+            BaseQueryMetric m = (BaseQueryMetric) o;
+            return event.getEventType() + " queryId:" + (m.getQueryId() + " numPages:" + m.getPageTimes().size() + " lastPage:" + getLastPageNumber(m));
+        } else {
+            return event.toString();
+        }
+        
     }
     
     @Override

@@ -334,7 +334,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
             enableLogs(true);
         }
     }
-
+    
     public T getQueryMetric(final String queryId) {
         VoidResponse response = new VoidResponse();
         List<T> queryMetrics = getQueryMetrics(response, "QUERY_ID == '" + queryId + "'");
@@ -372,6 +372,8 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
         try {
             QueryLogic<?> queryLogic = logicFactory.getObject();
             
+            log.info("************* connector auths: " + connector.securityOperations().getUserAuthorizations(connector.whoami()));
+            log.info("************* connector auths: " + this.queryMetricHandlerProperties.getPassword());
             runningQuery = new RunningQuery(null, connector, Priority.ADMIN, queryLogic, query, query.getQueryAuthorizations(), datawavePrincipal,
                             metricFactory);
             

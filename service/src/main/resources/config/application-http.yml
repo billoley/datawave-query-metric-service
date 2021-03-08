@@ -3,7 +3,8 @@ spring:
     datawave:
       use-trusted-subject-headers: true
       jwt:
-        enabled: true
+        enabled: false
+      require-ssl: false
 
 server:
   ssl:

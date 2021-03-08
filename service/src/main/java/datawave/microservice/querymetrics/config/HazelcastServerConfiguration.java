@@ -4,6 +4,7 @@ import com.hazelcast.config.Config;
 import com.hazelcast.config.DiscoveryStrategyConfig;
 import com.hazelcast.config.JoinConfig;
 import com.hazelcast.config.MapStoreConfig;
+import com.hazelcast.config.TcpIpConfig;
 import com.hazelcast.config.XmlConfigBuilder;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
@@ -29,6 +30,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 import java.io.ByteArrayInputStream;
+import java.net.InetAddress;
+import java.util.Collection;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -124,6 +127,39 @@ public class HazelcastServerConfiguration {
             joinConfig.getDiscoveryConfig().addDiscoveryStrategyConfig(discoveryStrategyConfig);
         }
         
+        return config;
+    }
+    
+    @Bean
+    @Profile("!consul & !k8s")
+    public Config ipConfig(HazelcastServerProperties serverProperties) {
+        Config config = generateDefaultConfig(serverProperties);
+        if (!serverProperties.isSkipDiscoveryConfiguration()) {
+            try {
+                JoinConfig joinConfig = config.getNetworkConfig().getJoin();
+                Collection<DiscoveryStrategyConfig> discoveryStrategyConfigs = joinConfig.getDiscoveryConfig().getDiscoveryStrategyConfigs();
+                TcpIpConfig tcpIpConfig = joinConfig.getTcpIpConfig();
+                
+                // skip if there is a different discovery strategy configured or if ip discovery is configured in XML
+                if (discoveryStrategyConfigs.isEmpty() && tcpIpConfig.getMembers().isEmpty()) {
+                    // Disable multicast discovery, enable ip discovery
+                    joinConfig.getMulticastConfig().setEnabled(false);
+                    String localhost = InetAddress.getLocalHost().getHostAddress();
+                    // When omitting the port, Hazelcast will look for members at ports 5701, 5702, etc
+                    if (localhost.equals("127.0.0.1")) {
+                        // this will handle multiple instance on different ports
+                        tcpIpConfig.addMember(localhost);
+                    } else {
+                        // assume potential members only differ in last octet of ip
+                        int x = localhost.lastIndexOf(".");
+                        tcpIpConfig.addMember(localhost.substring(0, x + 1) + "*");
+                    }
+                    tcpIpConfig.setEnabled(true);
+                }
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
+            }
+        }
         return config;
     }
     
