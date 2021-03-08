@@ -2,15 +2,20 @@ package datawave.microservice.querymetrics;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import datawave.microservice.authorization.preauth.ProxiedEntityX509Filter;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
 import datawave.microservice.querymetrics.config.QueryMetricHandlerProperties;
+import datawave.microservice.querymetrics.config.QueryMetricListResponseDeserializer;
 import datawave.microservice.querymetrics.handler.ShardTableQueryMetricHandler;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.JWTTokenHandler;
 import datawave.security.authorization.SubjectIssuerDNPair;
+import datawave.security.util.DnUtils;
 import datawave.webservice.query.metric.BaseQueryMetric;
+import datawave.webservice.query.metric.BaseQueryMetricListResponse;
 import datawave.webservice.query.metric.QueryMetric;
+import datawave.webservice.query.metric.QueryMetricListResponse;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -21,7 +26,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.time.DateUtils;
-import org.apache.log4j.Level;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -47,9 +51,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static datawave.security.authorization.DatawaveUser.UserType.USER;
 import static datawave.microservice.querymetrics.config.HazelcastServerConfiguration.INCOMING_METRICS;
 import static datawave.microservice.querymetrics.config.HazelcastServerConfiguration.LAST_WRITTEN_METRICS;
+import static datawave.security.authorization.DatawaveUser.UserType.USER;
 
 public class QueryMetricTestBase {
     
@@ -119,6 +123,10 @@ public class QueryMetricTestBase {
             }
         }
         Assert.assertTrue("metadata table empty", getMetadataEntries().size() > 0);
+        
+        SimpleModule baseQueryMetricDeserializer = new SimpleModule(BaseQueryMetricListResponse.class.getName());
+        baseQueryMetricDeserializer.addDeserializer(BaseQueryMetricListResponse.class, new QueryMetricListResponseDeserializer(QueryMetricListResponse.class));
+        objectMapper.registerModule(baseQueryMetricDeserializer);
     }
     
     @After
@@ -150,6 +158,8 @@ public class QueryMetricTestBase {
         m.setCreateCallTime(4000);
         m.setQueryAuthorizations("A,B,C");
         m.setQueryName("TestQuery");
+        m.setUser(DnUtils.getShortName(ALLOWED_CALLER.subjectDN()));
+        m.setUserDN(ALLOWED_CALLER.subjectDN());
         return m;
     }
     

@@ -46,9 +46,11 @@ import datawave.webservice.result.VoidResponse;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -120,16 +122,18 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
     private DatawavePrincipal datawavePrincipal;
     
     @Autowired
-    public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("warehouse") Connector connector,
+    public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("warehouse") Instance instance,
                     QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory) {
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
-        this.connector = connector;
         this.logicFactory = logicFactory;
         this.metricFactory = metricFactory;
         queryMetricHandlerProperties.getProperties().entrySet().forEach(e -> conf.set(e.getKey(), e.getValue()));
         
         try {
-            connectorAuthorizations = connector.securityOperations().getUserAuthorizations(connector.whoami()).toString();
+            log.info("creating connector with username:" + queryMetricHandlerProperties.getUsername() + " password:"
+                            + queryMetricHandlerProperties.getPassword());
+            this.connector = instance.getConnector(queryMetricHandlerProperties.getUsername(), new PasswordToken(queryMetricHandlerProperties.getPassword()));
+            connectorAuthorizations = this.connector.securityOperations().getUserAuthorizations(this.connector.whoami()).toString();
             reload();
             
             if (tablesChecked.compareAndSet(false, true)) {

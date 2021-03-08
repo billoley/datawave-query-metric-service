@@ -132,21 +132,24 @@ public class QueryMetricOperations {
      * @HTTP 500 internal server error
      */
     @PermitAll
-    @RequestMapping(path = "/id/{id}", method = {RequestMethod.GET}, produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
-    public BaseQueryMetricListResponse query(/* @AuthenticationPrincipal ProxiedUserDetails currentUser, */
+    @RequestMapping(path = "/id/{id}", method = {RequestMethod.GET, RequestMethod.POST},
+                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    public BaseQueryMetricListResponse query(@AuthenticationPrincipal ProxiedUserDetails currentUser,
                     @ApiParam("queryId to return") @PathVariable("id") String id) {
         
         BaseQueryMetricListResponse response = new QueryMetricListResponse();
-        log.info("Get request for queryId:" + id);
         BaseQueryMetric metric = incomingQueryMetricsCache.get(id, BaseQueryMetric.class);
-        log.info("Get request for queryId, received: " + metric);
         List<BaseQueryMetric> metricList = new ArrayList<>();
         if (metric != null) {
             String adminRole = queryMetricHandlerProperties.getMetricAdminRole();
-            String requestingUser = "";// DnUtils.getShortName(currentUser.getPrimaryUser().getName());
-            String metricUser = metric.getUser();
-            boolean allowAllMetrics = adminRole == null; // || currentUser.getPrimaryUser().getRoles().contains(adminRole);
-            boolean sameUser = metricUser != null && metricUser.equals(requestingUser);
+            boolean allowAllMetrics = adminRole == null;
+            boolean sameUser = false;
+            if (currentUser != null) {
+                String metricUser = metric.getUser();
+                String requestingUser = DnUtils.getShortName(currentUser.getPrimaryUser().getName());
+                sameUser = metricUser != null && metricUser.equals(requestingUser);
+                allowAllMetrics = allowAllMetrics || currentUser.getPrimaryUser().getRoles().contains(adminRole);
+            }
             if (sameUser || allowAllMetrics) {
                 metricList.add(metric);
             }

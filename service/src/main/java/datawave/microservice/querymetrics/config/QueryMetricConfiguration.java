@@ -42,9 +42,9 @@ public class QueryMetricConfiguration {
         mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         Class metricClass = metricFactory.createMetric().getClass();
-        SimpleModule module = new SimpleModule(metricClass.getName());
-        module.addDeserializer(BaseQueryMetric.class, new BaseQueryMetricDeserializer(metricClass));
-        mapper.registerModule(module);
+        SimpleModule baseQueryMetricDeserializer = new SimpleModule(metricClass.getName());
+        baseQueryMetricDeserializer.addDeserializer(BaseQueryMetric.class, new BaseQueryMetricDeserializer(metricClass));
+        mapper.registerModule(baseQueryMetricDeserializer);
         mapper.registerModule(new GuavaModule());
         mapper.registerModule(new JaxbAnnotationModule());
         return mapper;

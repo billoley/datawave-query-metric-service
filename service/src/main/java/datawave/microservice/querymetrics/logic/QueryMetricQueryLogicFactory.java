@@ -46,6 +46,7 @@ public class QueryMetricQueryLogicFactory implements FactoryBean<QueryMetricQuer
         logic.setMetadataHelperFactory(this.metadataHelperFactory);
         logic.setDateIndexHelperFactory(this.dateIndexHelperFactory);
         logic.setResponseObjectFactory(this.responseObjectFactory);
+        logic.setAccumuloPassword(this.queryMetricHandlerProperties.getPassword());
         return logic;
     }
     

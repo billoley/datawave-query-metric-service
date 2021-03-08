@@ -2,6 +2,7 @@ package datawave.microservice.querymetrics;
 
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.webservice.query.metric.BaseQueryMetric;
+import datawave.webservice.query.metric.BaseQueryMetricListResponse;
 import datawave.webservice.query.metric.QueryMetric;
 import org.junit.After;
 import org.junit.Assert;
@@ -19,7 +20,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -141,6 +141,7 @@ public class QueryMetricOperationsTest2 extends QueryMetricTestBase {
         Random r = new Random();
         
         int numPages = 10;
+        int numServices = 1;
         long start = System.currentTimeMillis();
         for (int i = 0; i < numPages; i++) {
             long now = System.currentTimeMillis();
@@ -149,7 +150,7 @@ public class QueryMetricOperationsTest2 extends QueryMetricTestBase {
             try {
                 HttpEntity requestEntity = createRequestEntity(null, allowedCaller, truncatePageTimes(m));
                 UriComponents uri;
-                int choice = r.nextInt(3);
+                int choice = r.nextInt(numServices);
                 System.out.println("choice " + choice);
                 switch (choice) {
                     case 0:
@@ -186,12 +187,13 @@ public class QueryMetricOperationsTest2 extends QueryMetricTestBase {
     @Test
     public void GetMetric() {
         try {
-            String id = "2066-5019-1520-8425";
+            String id = "0883-7663-2443-8057";
             UriComponents uri = UriComponentsBuilder.newInstance().scheme("https").host("localhost").port(port1).path(String.format(getMetricsUrl, id)).build();
             
             HttpEntity requestEntity = createRequestEntity(null, allowedCaller, null);
-            ResponseEntity<BaseQueryMetric> response = restTemplate.exchange(uri.toUri(), HttpMethod.GET, requestEntity, BaseQueryMetric.class);
-            System.out.println(response.getBody());
+            ResponseEntity<BaseQueryMetricListResponse> response = restTemplate.exchange(uri.toUri(), HttpMethod.GET, requestEntity,
+                            BaseQueryMetricListResponse.class);
+            System.out.println(response.getBody().getResult());
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
