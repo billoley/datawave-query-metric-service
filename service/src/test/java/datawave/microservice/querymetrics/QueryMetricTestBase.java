@@ -60,11 +60,11 @@ public class QueryMetricTestBase {
     protected Logger log = LoggerFactory.getLogger(getClass());
     
     protected static final SubjectIssuerDNPair ALLOWED_CALLER = SubjectIssuerDNPair
-                    .of("cn=test.testcorp.com, ou=microservices, ou=development, o=testcorp, c=us", "cn=testcorp ca, ou=security, o=testcorp, c=us");
-    
-    protected static final String updateMetricUrl = "/querymetric/v1/updateMetric";
-    protected static final String updateMetricsUrl = "/querymetric/v1/updateMetrics";
-    protected static final String getMetricsUrl = "/querymetric/v1/id/%s";
+                    .of("cn=test a. user, ou=example developers, o=example corp, c=us", "cn=example corp ca, o=example corp, c=us");
+
+    protected static final String updateMetricUrl = "/querymetrics/v1/updateMetric";
+    protected static final String updateMetricsUrl = "/querymetrics/v1/updateMetrics";
+    protected static final String getMetricsUrl = "/querymetrics/v1/id/%s";
     
     @Autowired
     protected RestTemplateBuilder restTemplateBuilder;

@@ -140,8 +140,8 @@ public class QueryMetricOperationsTest2 extends QueryMetricTestBase {
         QueryMetric m = createMetric(queryId);
         Random r = new Random();
         
-        int numPages = 10;
-        int numServices = 1;
+        int numPages = 1000;
+        int numServices = 3;
         long start = System.currentTimeMillis();
         for (int i = 0; i < numPages; i++) {
             long now = System.currentTimeMillis();
@@ -194,6 +194,7 @@ public class QueryMetricOperationsTest2 extends QueryMetricTestBase {
             ResponseEntity<BaseQueryMetricListResponse> response = restTemplate.exchange(uri.toUri(), HttpMethod.GET, requestEntity,
                             BaseQueryMetricListResponse.class);
             System.out.println(response.getBody().getResult());
+            System.out.println(response.getStatusCode().toString());
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }

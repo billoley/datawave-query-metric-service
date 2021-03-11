@@ -70,7 +70,6 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
             log.error(e.getMessage(), e);
         } finally {
             ((MapProxyImpl) lastWrittenQueryMetricCache.getNativeCache()).set(queryId, updatedMetric);
-            log.info("stored queryMetric " + updatedMetric.getQueryId() + " page " + getLastPageNumber(updatedMetric));
         }
     }
     
@@ -93,23 +92,5 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     @Override
     public void deleteAll(Collection<String> keys) {
         // not implemented
-    }
-    
-    // @Override
-    // public Iterable<String> loadAllKeys() {
-    // return Collections.emptyList();
-    // }
-    //
-    // @Override
-    // public Map<String,T> loadAll(Collection<String> keys) {
-    // return Collections.emptyMap();
-    // }
-    //
-    @Override
-    public T load(String key) {
-        log.info("Loading: " + key);
-        T t = super.load(key);
-        log.info("Loading: " + key + " got: " + t);
-        return t;
     }
 }

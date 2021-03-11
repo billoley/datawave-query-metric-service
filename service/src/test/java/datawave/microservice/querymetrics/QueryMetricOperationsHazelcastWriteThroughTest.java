@@ -31,10 +31,4 @@ public class QueryMetricOperationsHazelcastWriteThroughTest extends QueryMetricO
     public void MultipleMetricsAsListStoredCorrectlyInCachesAndAccumulo() {
         super.MultipleMetricsAsListStoredCorrectlyInCachesAndAccumulo();
     }
-    
-    @Test
-    @Override
-    public void PageMetricTest() {
-        super.PageMetricTest();
-    }
 }

@@ -1,0 +1,85 @@
+spring:
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration
+
+  security:
+    user.password: passwordNotUsed
+    datawave:
+      jwt.ttl: 3600
+      issuers-required: true
+      enforce-allowed-callers: false
+      allowed-callers:
+        - "cn=test.testcorp.com, ou=microservices, ou=development, o=testcorp, c=us<cn=testcorp ca, ou=security, o=testcorp, c=us>"
+server:
+  port: 0
+  non-secure-port: 0
+  servlet.context-path: /querymetric
+  ssl:
+    client-auth: none
+    trust-store: classpath:ssl/rootCA.p12
+    trust-store-type: PKCS12
+    trust-store-password: LetMeIn
+    key-store: classpath:ssl/host.p12
+    key-store-type: PKCS12
+    key-store-password: LetMeIn
+  outbound-ssl:
+    key-store: ${server.ssl.key-store}
+    key-store-password: ${server.ssl.key-store-password}
+    key-store-type: ${server.ssl.key-store-type}
+    trust-store: ${server.ssl.trust-store}
+    trust-store-password: ${server.ssl.trust-store-password}
+    trust-store-type: ${server.ssl.trust-store-type}
+
+warehouse-cluster:
+  accumulo:
+    zookeepers: 'localhost:2181'
+    instanceName: 'accumulo'
+    username: 'root'
+    password: 'secret'
+
+management:
+  endpoints:
+    web:
+      base-path: "/mgmt"
+
+logging:
+  level:
+    ROOT: trace
+    datawave:
+      query: debug
+      microservice:
+        querymetrics: trace
+    com.hazelcast: info
+#    datawave.microservice.querymetrics.peristence: info
+#    datawave.microservice.querymetrics.QueryMetricOperations: info
+#    datawave.iterators: info
+#    datawave.ingest.metadata: info
+#    datawave.ingest.table: info
+#    datawave.util.ObjectFactory: error
+#    datawave.query: info
+#    datawave.query.tables.ShardQueryLogic: error
+#    datawave.security.authorization.JWTTokenHandler: info
+
+datawave:
+  query:
+    metric:
+      handler:
+        zookeepers: ${warehouse-cluster.accumulo.zookeepers}
+        instanceName: ${warehouse-cluster.accumulo.instanceName}
+        username: ${warehouse-cluster.accumulo.username}
+        password: ${warehouse-cluster.accumulo.password}
+        numShards: 10
+        fieldLengthThreshold: 4049
+        shardTableName: QueryMetrics_e
+        indexTableName: QueryMetrics_i
+        dateIndexTableName: QueryMetrics_di
+        reverseIndexTableName: QueryMetrics_r
+        metadataTableName: QueryMetrics_m
+        metadataDefaultAuths: PUBLIC
+        recordWriterMaxMemory: 100000
+        recordWriterMaxLatency: 0
+        recordWriterNumThreads: 4
+        enableBloomFilter: false
+
+hazelcast.client.enabled: false
+hazelcast.server.enabled: false

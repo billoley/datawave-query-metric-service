@@ -47,14 +47,4 @@ hazelcast:
             <factory-class-name>datawave.microservice.querymetrics.peristence.AccumuloMapLoader$Factory</factory-class-name>
           </map-store>
         </map>
-      <!--
-        <network>
-            <join>
-                <multicast enabled="false"/>
-                <tcp-ip enabled="true">
-                    <member>127.0.0.1</member>
-                </tcp-ip>
-            </join>
-        </network>
-      -->
       </hazelcast>
