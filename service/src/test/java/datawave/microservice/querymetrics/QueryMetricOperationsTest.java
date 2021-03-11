@@ -1,18 +1,14 @@
 package datawave.microservice.querymetrics;
 
-import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.webservice.query.metric.BaseQueryMetric;
-import datawave.webservice.query.metric.BaseQueryMetricListResponse;
+import datawave.webservice.query.metric.QueryMetric;
+import datawave.webservice.result.VoidResponse;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
-import datawave.webservice.query.metric.QueryMetric;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -40,7 +36,7 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
         
         try {
             HttpEntity requestEntity = createRequestEntity(null, allowedCaller, m);
-            restTemplate.postForEntity(uri.toUri(), requestEntity, String.class);
+            restTemplate.postForEntity(uri.toUri(), requestEntity, VoidResponse.class);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
@@ -61,7 +57,7 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
             
             try {
                 HttpEntity requestEntity = createRequestEntity(null, allowedCaller, m);
-                restTemplate.postForEntity(uri.toUri(), requestEntity, String.class);
+                restTemplate.postForEntity(uri.toUri(), requestEntity, VoidResponse.class);
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
             }
@@ -86,7 +82,7 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
         
         try {
             HttpEntity requestEntity = createRequestEntity(null, allowedCaller, metrics);
-            restTemplate.postForEntity(uri.toUri(), requestEntity, String.class);
+            restTemplate.postForEntity(uri.toUri(), requestEntity, VoidResponse.class);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }

@@ -12,6 +12,8 @@ import datawave.microservice.cached.CacheInspector;
 import datawave.microservice.cached.LockableCacheInspector;
 import datawave.microservice.cached.LockableHazelcastCacheInspector;
 import datawave.microservice.cached.UniversalLockableCacheInspector;
+import datawave.microservice.querymetrics.handler.ShardTableQueryMetricHandler;
+import datawave.microservice.querymetrics.logic.QueryMetricQueryLogicFactory;
 import datawave.microservice.querymetrics.peristence.MetricStorageCache;
 import datawave.query.util.DateIndexHelperFactory;
 import datawave.query.util.MetadataHelperFactory;
@@ -21,7 +23,9 @@ import datawave.webservice.query.cache.QueryMetricFactoryImpl;
 import datawave.webservice.query.metric.BaseQueryMetric;
 import datawave.webservice.query.result.event.DefaultResponseObjectFactory;
 import datawave.webservice.query.result.event.ResponseObjectFactory;
+import org.apache.accumulo.core.client.Instance;
 import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.CacheManager;
@@ -89,5 +93,12 @@ public class QueryMetricConfiguration {
     @Bean
     QueryMetricFactory queryMetricFactory() {
         return new QueryMetricFactoryImpl();
+    }
+    
+    @Bean
+    @ConditionalOnMissingBean
+    public ShardTableQueryMetricHandler shardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
+                    @Qualifier("warehouse") Instance instance, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory) {
+        return new ShardTableQueryMetricHandler(queryMetricHandlerProperties, instance, logicFactory, metricFactory);
     }
 }

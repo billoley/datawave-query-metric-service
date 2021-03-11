@@ -59,9 +59,9 @@ public class QueryMetricTestBase {
     
     protected Logger log = LoggerFactory.getLogger(getClass());
     
-    protected static final SubjectIssuerDNPair ALLOWED_CALLER = SubjectIssuerDNPair
-                    .of("cn=test a. user, ou=example developers, o=example corp, c=us", "cn=example corp ca, o=example corp, c=us");
-
+    protected static final SubjectIssuerDNPair ALLOWED_CALLER = SubjectIssuerDNPair.of("cn=test a. user, ou=example developers, o=example corp, c=us",
+                    "cn=example corp ca, o=example corp, c=us");
+    
     protected static final String updateMetricUrl = "/querymetrics/v1/updateMetric";
     protected static final String updateMetricsUrl = "/querymetrics/v1/updateMetrics";
     protected static final String getMetricsUrl = "/querymetrics/v1/id/%s";

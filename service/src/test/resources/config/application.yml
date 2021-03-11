@@ -44,7 +44,7 @@ management:
 
 logging:
   level:
-    ROOT: warn
+    ROOT: trace
     datawave.iterators: info
     datawave.ingest.metadata: info
     datawave.ingest.table: info

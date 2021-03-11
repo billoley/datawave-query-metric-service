@@ -10,6 +10,8 @@ public interface QueryMetricHandler<T extends BaseQueryMetric> {
     
     Map<String,String> getEventFields(BaseQueryMetric queryMetric);
     
+    ContentQueryMetricsIngestHelper getQueryMetricsIngestHelper();
+    
     void flush() throws Exception;
     
     /**

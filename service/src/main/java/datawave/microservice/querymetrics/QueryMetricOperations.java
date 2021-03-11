@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.security.PermitAll;
+import javax.annotation.security.RolesAllowed;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -55,6 +56,7 @@ public class QueryMetricOperations {
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
     }
     
+    @RolesAllowed({"Administrator", "JBossAdministrator"})
     @RequestMapping(path = "/updateMetrics", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public VoidResponse update(@RequestBody List<BaseQueryMetric> queryMetrics) {
@@ -79,6 +81,7 @@ public class QueryMetricOperations {
         return lastPage;
     }
     
+    @RolesAllowed({"Administrator", "JBossAdministrator"})
     @RequestMapping(path = "/updateMetric", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public VoidResponse update(@RequestBody BaseQueryMetric queryMetric) {
@@ -155,6 +158,11 @@ public class QueryMetricOperations {
             }
         }
         response.setResult(metricList);
+        if (metricList.isEmpty()) {
+            response.setHasResults(false);
+        } else {
+            response.setHasResults(true);
+        }
         return response;
     }
 }

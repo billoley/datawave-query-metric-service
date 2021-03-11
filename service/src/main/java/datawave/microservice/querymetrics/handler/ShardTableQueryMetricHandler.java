@@ -68,10 +68,7 @@ import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.mapreduce.task.MapContextImpl;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -93,8 +90,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static datawave.security.authorization.DatawaveUser.UserType.USER;
 
-@Component
-@Lazy
 public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements QueryMetricHandler<T> {
     private static final Logger log = ThreadConfigurableLogger.getLogger(ShardTableQueryMetricHandler.class.getName());
     
@@ -121,7 +116,6 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
     private UIDBuilder<UID> uidBuilder = UID.builder();
     private DatawavePrincipal datawavePrincipal;
     
-    @Autowired
     public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("warehouse") Instance instance,
                     QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory) {
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
@@ -168,7 +162,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
             AbstractColumnBasedHandler<Key> handler = new ContentIndexingColumnBasedHandler() {
                 @Override
                 public AbstractContentIngestHelper getContentIndexingDataTypeHelper() {
-                    return (ContentQueryMetricsIngestHelper) helper;
+                    return getQueryMetricsIngestHelper();
                 }
             };
             createAndConfigureTablesIfNecessary(handler.getTableNames(conf), connector.tableOperations(), conf);
@@ -193,7 +187,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
                 AbstractColumnBasedHandler<Key> handler = new ContentIndexingColumnBasedHandler() {
                     @Override
                     public AbstractContentIngestHelper getContentIndexingDataTypeHelper() {
-                        return (ContentQueryMetricsIngestHelper) helper;
+                        return getQueryMetricsIngestHelper();
                     }
                 };
                 handler.setup(context);
@@ -375,9 +369,6 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
         
         try {
             QueryLogic<?> queryLogic = logicFactory.getObject();
-            
-            log.info("************* connector auths: " + connector.securityOperations().getUserAuthorizations(connector.whoami()));
-            log.info("************* connector auths: " + this.queryMetricHandlerProperties.getPassword());
             runningQuery = new RunningQuery(null, connector, Priority.ADMIN, queryLogic, query, query.getQueryAuthorizations(), datawavePrincipal,
                             metricFactory);
             
@@ -694,5 +685,10 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
         } catch (AccumuloException | AccumuloSecurityException | IOException e) {
             log.error(e.getMessage(), e);
         }
+    }
+    
+    @Override
+    public ContentQueryMetricsIngestHelper getQueryMetricsIngestHelper() {
+        return new ContentQueryMetricsIngestHelper();
     }
 }

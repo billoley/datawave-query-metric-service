@@ -1,12 +1,14 @@
 package datawave.microservice.querymetrics;
 
 import datawave.accumulo.inmemory.InMemoryInstance;
+import datawave.microservice.config.accumulo.AccumuloProperties;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.cache.CacheType;
@@ -25,7 +27,9 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 public class QueryMetricTestConfiguration {
     
-    private final String USER = "root";
+    @Autowired
+    @Qualifier("warehouse")
+    private AccumuloProperties accumuloProperties;
     
     public QueryMetricTestConfiguration() {}
     
@@ -33,15 +37,16 @@ public class QueryMetricTestConfiguration {
     @Lazy
     @Qualifier("warehouse")
     public Instance memoryWarehouseInstance() throws Exception {
-        return new InMemoryInstance();
+        Instance instance = new InMemoryInstance();
+        Connector connector = instance.getConnector(accumuloProperties.getUsername(), new PasswordToken(accumuloProperties.getPassword()));
+        connector.securityOperations().changeUserAuthorizations(connector.whoami(), new Authorizations("PUBLIC", "A", "B", "C"));
+        return instance;
     }
     
     @Bean
     @Lazy
     @Qualifier("warehouse")
     public Connector memoryWarehouseConnector(@Qualifier("warehouse") Instance instance) throws AccumuloSecurityException, AccumuloException {
-        Connector connector = instance.getConnector(USER, new PasswordToken(""));
-        connector.securityOperations().changeUserAuthorizations(connector.whoami(), new Authorizations("PUBLIC", "A", "B", "C"));
-        return connector;
+        return instance.getConnector(accumuloProperties.getUsername(), new PasswordToken(accumuloProperties.getPassword()));
     }
 }
