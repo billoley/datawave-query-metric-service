@@ -13,7 +13,7 @@ spring:
 server:
   port: 0
   non-secure-port: 0
-  servlet.context-path: /querymetric
+  servlet.context-path: /querymetrics
   ssl:
     client-auth: need
     trust-store: 'classpath:testCA.p12'

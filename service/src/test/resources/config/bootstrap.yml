@@ -1,6 +1,6 @@
 spring:
   application:
-    name: query-metrics-test
+    name: querymetrics
   cloud:
     bus:
       enabled: false

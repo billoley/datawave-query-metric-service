@@ -34,15 +34,15 @@ public class AlternateQueryMetricTest extends QueryMetricTestBase {
     }
     
     @Test
-    public void testAlternateQueryMetric() {
+    public void MetricStoredCorrectlyInCachesAndAccumulo() {
         
         UriComponents updateUri = UriComponentsBuilder.newInstance().scheme("http").host("localhost").port(webServicePort).path(updateMetricUrl).build();
-        
-//        BaseQueryMetric m = new AlternateQueryMetric();
-        BaseQueryMetric m = createMetric();
+
+        AlternateQueryMetric m = new AlternateQueryMetric();
         String queryId = createQueryId();
-        m.setQueryId(queryId);
-        
+        populateMetric(m, queryId);
+        m.setExtraField("extraValue");
+
         try {
             HttpEntity requestEntity = createRequestEntity(null, allowedCaller, m);
             ResponseEntity<VoidResponse> response = restTemplate.postForEntity(updateUri.toUri(), requestEntity, VoidResponse.class);

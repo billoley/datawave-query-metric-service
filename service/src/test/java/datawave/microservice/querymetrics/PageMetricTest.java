@@ -57,6 +57,7 @@ public class PageMetricTest extends QueryMetricTestBase {
                 
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
+                Assert.fail(e.getMessage());
             }
         }
     }

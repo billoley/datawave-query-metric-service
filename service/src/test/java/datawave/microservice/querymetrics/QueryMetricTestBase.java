@@ -139,10 +139,15 @@ public class QueryMetricTestBase {
     protected QueryMetric createMetric() {
         return createMetric(createQueryId());
     }
-    
+
     protected QueryMetric createMetric(String queryId) {
-        long now = System.currentTimeMillis();
         QueryMetric m = new QueryMetric();
+        populateMetric(m, queryId);
+        return m;
+    }
+
+    protected void populateMetric(BaseQueryMetric m, String queryId) {
+        long now = System.currentTimeMillis();
         Date nowDate = new Date(now);
         // Map<String,String> markings = new HashMap<>();
         m.setQueryId(queryId);
@@ -160,7 +165,6 @@ public class QueryMetricTestBase {
         m.setQueryName("TestQuery");
         m.setUser(DnUtils.getShortName(ALLOWED_CALLER.subjectDN()));
         m.setUserDN(ALLOWED_CALLER.subjectDN());
-        return m;
     }
     
     protected String createQueryId() {
@@ -200,7 +204,7 @@ public class QueryMetricTestBase {
      */
     protected void assertEquals(String message, BaseQueryMetric m1, BaseQueryMetric m2) {
         if (null == m2) {
-            return;
+            Assert.fail(message + ": actual metric is null");
         } else if (m1 == m2) {
             return;
         } else {

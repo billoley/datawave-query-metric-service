@@ -1,9 +1,12 @@
 package datawave.microservice.querymetrics;
 
-import datawave.webservice.query.metric.BaseQueryMetric;
+import datawave.webservice.query.metric.QueryMetric;
 
-public class AlternateQueryMetric extends BaseQueryMetric {
-    
+import javax.xml.bind.annotation.XmlElement;
+
+public class AlternateQueryMetric extends QueryMetric {
+
+    @XmlElement
     private String extraField;
     
     public AlternateQueryMetric() {
