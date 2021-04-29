@@ -39,6 +39,7 @@ public class QueryMetricHandlerProperties {
     protected String dateFormat = "yyyyMMdd HHmmss.S";
     protected int fieldLengthThreshold = 4049;
     protected String metricAdminRole;
+    protected String geometryBaseMaps = "{}";
     
     //@formatter:off
     protected List<String> indexFields = Arrays.asList(
@@ -399,5 +400,13 @@ public class QueryMetricHandlerProperties {
     
     public void setMetricAdminRole(String metricAdminRole) {
         this.metricAdminRole = metricAdminRole;
+    }
+    
+    public String getGeometryBaseMaps() {
+        return geometryBaseMaps;
+    }
+    
+    public void setGeometryBaseMaps(String geometryBaseMaps) {
+        this.geometryBaseMaps = geometryBaseMaps;
     }
 }
