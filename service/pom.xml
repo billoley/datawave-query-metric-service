@@ -27,7 +27,9 @@
         <version.microservice.hazelcast-client>1.5</version.microservice.hazelcast-client>
         <version.microservice.metadata-utils>1.6</version.microservice.metadata-utils>
         <version.microservice.starter>1.6.5</version.microservice.starter>
-        <version.reactor.core>3.4.4</version.reactor.core>
+        <version.netty>4.1.66.Final</version.netty>
+        <version.reactor-netty>1.0.10</version.reactor-netty>
+        <version.reactor.core>3.4.9</version.reactor.core>
         <version.slf4j-log4j12>1.7.30</version.slf4j-log4j12>
         <version.validation-api>2.0.2</version.validation-api>
     </properties>
@@ -45,6 +47,10 @@
                     <exclusion>
                         <artifactId>*</artifactId>
                         <groupId>org.eclipse.jetty</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>*</artifactId>
+                        <groupId>io.netty</groupId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -139,6 +145,10 @@
                         <artifactId>log4j-slf4j-impl</artifactId>
                         <groupId>org.apache.logging.log4j</groupId>
                     </exclusion>
+                    <exclusion>
+                        <artifactId>*</artifactId>
+                        <groupId>io.netty</groupId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
@@ -169,9 +179,36 @@
                 </exclusions>
             </dependency>
             <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-all</artifactId>
+                <version>${version.netty}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-tcnative-boringssl-static</artifactId>
+                <version>2.0.41.Final</version>
+            </dependency>
+            <dependency>
                 <groupId>io.projectreactor</groupId>
                 <artifactId>reactor-core</artifactId>
                 <version>${version.reactor.core}</version>
+                <exclusions>
+                    <exclusion>
+                        <artifactId>*</artifactId>
+                        <groupId>io.netty</groupId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>io.projectreactor.netty</groupId>
+                <artifactId>reactor-netty</artifactId>
+                <version>${version.reactor-netty}</version>
+                <exclusions>
+                    <exclusion>
+                        <artifactId>*</artifactId>
+                        <groupId>io.netty</groupId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>jakarta.validation</groupId>
@@ -241,8 +278,20 @@
             <artifactId>datawave-ws-query</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-tcnative-boringssl-static</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.projectreactor.netty</groupId>
+            <artifactId>reactor-netty</artifactId>
         </dependency>
         <dependency>
             <groupId>jakarta.validation</groupId>
